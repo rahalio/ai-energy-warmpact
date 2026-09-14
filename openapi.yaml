@@ -1,0 +1,2054 @@
+openapi: 3.0.3
+info:
+  title: Warmpact
+  version: 0.1.0
+  description: >-
+    Condition-as-a-service platform for district heating. Buildings are underwritten
+    for thermal behaviour, substation health, and envelope condition before a
+    guaranteed operating condition is sold at a flat monthly rate; supply temperature
+    optimisation and return temperature management run inside hard health and safety
+    floors; guarantee breaches are detected by measurement and credited automatically;
+    and remediation proposals are issued on long-run customer expenditure even where
+    they reduce heat sales volume.
+  x-product-slug: ai-energy-warmpact
+  x-source: ai-in-energy/deloitte-mpact_of_digitalization_in_district_heating_summary_ENG/
+servers:
+  - url: https://api.example.com
+tags:
+  - name: Customers
+    description: Heat customers, building connections, and substations
+  - name: Underwriting
+    description: Building thermal models and offer, decline, or remediate decisions
+  - name: Guarantees
+    description: Condition products, guarantees, safety floors, and exit packages
+  - name: Pricing
+    description: Flat-rate price construction, revision, and comparability
+  - name: Forecasting
+    description: Building-level and network heat demand forecasts
+  - name: NetworkOptimisation
+    description: Supply temperature setpoints and return temperature management
+  - name: Diagnostics
+    description: Substation fault findings and work order dispatch
+  - name: Settlement
+    description: Condition measurement, breaches, service credits, and invoices
+  - name: Advisory
+    description: Remediation proposals, benchmarking, and plain-language reporting
+  - name: Governance
+    description: Carbon intensity, tariff comparability, and audit trail
+paths:
+  /v1/customers:
+    get:
+      operationId: listHeatCustomers
+      tags: [Customers]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: segment
+          in: query
+          schema:
+            $ref: "#/components/schemas/CustomerSegment"
+      responses:
+        "200":
+          description: Heat customers page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeHeatCustomer"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/connections:
+    get:
+      operationId: listBuildingConnections
+      tags: [Customers]
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: customerId
+          in: query
+          schema:
+            type: string
+        - name: contractStatus
+          in: query
+          schema:
+            type: string
+            enum: [metered_tariff, under_underwriting, condition_contract, exited]
+      responses:
+        "200":
+          description: Building connections page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeBuildingConnection"
+    post:
+      operationId: registerBuildingConnection
+      tags: [Customers]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BuildingConnectionCreate"
+      responses:
+        "201":
+          description: Connection registered with its substation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeBuildingConnection"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+  /v1/connections/{connectionId}:
+    parameters:
+      - $ref: "#/components/parameters/ConnectionId"
+    get:
+      operationId: getBuildingConnection
+      tags: [Customers]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Connection with substation, thermal model, and guarantee status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeBuildingConnection"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/connections/{connectionId}/underwriting:
+    parameters:
+      - $ref: "#/components/parameters/ConnectionId"
+    post:
+      operationId: underwriteBuildingConnection
+      tags: [Underwriting]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UnderwritingRequest"
+      responses:
+        "201":
+          description: Assessment with offer, decline, or remediate-first decision
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeUnderwritingAssessment"
+        "409":
+          description: Insufficient substation history to build a thermal model
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    get:
+      operationId: getUnderwritingAssessment
+      tags: [Underwriting]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Current underwriting assessment for the connection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeUnderwritingAssessment"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/connections/{connectionId}/thermal-model:
+    parameters:
+      - $ref: "#/components/parameters/ConnectionId"
+    get:
+      operationId: getBuildingThermalModel
+      tags: [Underwriting]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Building thermal model derived from telemetry and weather series
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeBuildingThermalModel"
+  /v1/condition-products:
+    get:
+      operationId: listConditionProducts
+      tags: [Guarantees]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Guarantee templates available for sale
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeConditionProduct"
+    post:
+      operationId: createConditionProduct
+      tags: [Guarantees]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConditionProductCreate"
+      responses:
+        "201":
+          description: Condition product defined in plain language with exclusions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeConditionProduct"
+  /v1/guarantees:
+    get:
+      operationId: listConditionGuarantees
+      tags: [Guarantees]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [offered, active, in_revision, terminated]
+      responses:
+        "200":
+          description: Condition guarantees page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeConditionGuarantee"
+    post:
+      operationId: offerConditionGuarantee
+      tags: [Guarantees]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConditionGuaranteeCreate"
+      responses:
+        "201":
+          description: Guarantee offered with flat rate, exclusions, and exit terms
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeConditionGuarantee"
+        "409":
+          description: Connection has no accepted underwriting assessment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /v1/guarantees/{guaranteeId}/exit-package:
+    parameters:
+      - $ref: "#/components/parameters/GuaranteeId"
+    post:
+      operationId: releaseExitPackage
+      tags: [Guarantees]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  enum: [customer_exit, transfer_to_third_party, method_change, end_of_term]
+                transferee:
+                  type: string
+      responses:
+        "201":
+          description: Building model, condition history, and settings released to the customer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeExitPackage"
+  /v1/safety-floors:
+    get:
+      operationId: getSafetyFloors
+      tags: [Guarantees]
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Non-negotiable indoor and hot water temperature floors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeSafetyFloor"
+  /v1/pricing/flat-rates:
+    post:
+      operationId: buildFlatRatePrice
+      tags: [Pricing]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FlatRatePriceRequest"
+      responses:
+        "200":
+          description: Flat rate built from named components with revision triggers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeFlatRatePrice"
+  /v1/pricing/comparability-checks:
+    post:
+      operationId: checkPriceComparability
+      tags: [Pricing]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [guaranteeId]
+              properties:
+                guaranteeId:
+                  type: string
+      responses:
+        "200":
+          description: Evidence that comparable customers are priced on comparable terms
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeTariffComparabilityCheck"
+  /v1/forecasts/demand:
+    get:
+      operationId: getDemandForecast
+      tags: [Forecasting]
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: connectionId
+          in: query
+          schema:
+            type: string
+        - name: networkZone
+          in: query
+          schema:
+            type: string
+        - name: horizonHours
+          in: query
+          schema:
+            type: integer
+            default: 72
+      responses:
+        "200":
+          description: Building-level or zone-level heat demand forecast
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeDemandForecast"
+  /v1/network/setpoints:
+    get:
+      operationId: listSupplyTemperatureSetpoints
+      tags: [NetworkOptimisation]
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: networkZone
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Current and scheduled supply temperature setpoints
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeSupplyTemperatureSetpoint"
+    post:
+      operationId: issueSupplyTemperatureSetpoint
+      tags: [NetworkOptimisation]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupplyTemperatureSetpointCreate"
+      responses:
+        "201":
+          description: Setpoint issued to network control within safety floors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeSupplyTemperatureSetpoint"
+        "403":
+          description: Setpoint would breach a health and safety floor and is refused
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /v1/network/return-temperatures:
+    get:
+      operationId: listReturnTemperatureRecords
+      tags: [NetworkOptimisation]
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [cost_to_network_desc, temperature_desc]
+            default: cost_to_network_desc
+      responses:
+        "200":
+          description: Connection-level return temperatures ranked by cost to the network
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeReturnTemperatureRecord"
+    post:
+      operationId: ingestReturnTemperatureRecord
+      tags: [NetworkOptimisation]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReturnTemperatureRecord"
+      responses:
+        "202":
+          description: Return temperature telemetry accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeReturnTemperatureRecord"
+  /v1/diagnostics/fault-findings:
+    get:
+      operationId: listFaultFindings
+      tags: [Diagnostics]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: faultType
+          in: query
+          schema:
+            $ref: "#/components/schemas/FaultType"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [detected, triaged, dispatched, resolved, dismissed]
+      responses:
+        "200":
+          description: Substation and building-side fault findings with evidence
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeFaultFinding"
+  /v1/diagnostics/fault-findings/{findingId}/work-order:
+    parameters:
+      - $ref: "#/components/parameters/FindingId"
+    post:
+      operationId: dispatchWorkOrder
+      tags: [Diagnostics]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkOrderCreate"
+      responses:
+        "201":
+          description: Work order dispatched with suspected cause and evidence attached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeWorkOrder"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/settlement/condition-measurements:
+    post:
+      operationId: ingestConditionMeasurement
+      tags: [Settlement]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConditionMeasurement"
+      responses:
+        "202":
+          description: Measurement accepted and compared to the active guarantee
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeConditionMeasurement"
+  /v1/settlement/breaches:
+    get:
+      operationId: listGuaranteeBreaches
+      tags: [Settlement]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Period"
+        - name: detectedBy
+          in: query
+          schema:
+            type: string
+            enum: [measurement, customer_report]
+      responses:
+        "200":
+          description: Breaches with the service credits applied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeGuaranteeBreach"
+  /v1/settlement/invoices:
+    get:
+      operationId: listFlatRateInvoices
+      tags: [Settlement]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Period"
+      responses:
+        "200":
+          description: Flat-rate invoices with automatic service credits
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeFlatRateInvoice"
+    post:
+      operationId: issueFlatRateInvoice
+      tags: [Settlement]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [guaranteeId, period]
+              properties:
+                guaranteeId:
+                  type: string
+                period:
+                  type: string
+                  example: 2026-02
+      responses:
+        "201":
+          description: Invoice issued with credits calculated from measured breaches
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeFlatRateInvoice"
+  /v1/settlement/margin-report:
+    get:
+      operationId: getMarginPerConnectionReport
+      tags: [Settlement]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Period"
+      responses:
+        "200":
+          description: Gross margin per connection reported independently of delivered volume
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeMarginReport"
+  /v1/advisory/remediation-proposals:
+    get:
+      operationId: listRemediationProposals
+      tags: [Advisory]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [drafted, issued, accepted, declined, completed]
+      responses:
+        "200":
+          description: Remediation and retrofit proposals page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeRemediationProposal"
+    post:
+      operationId: issueRemediationProposal
+      tags: [Advisory]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RemediationProposalCreate"
+      responses:
+        "201":
+          description: Proposal issued stating effect on long-run annual expenditure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeRemediationProposal"
+  /v1/advisory/benchmarks:
+    get:
+      operationId: getBenchmarkCohort
+      tags: [Advisory]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: connectionId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Anonymised comparable-property cohort statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeBenchmarkCohort"
+        "409":
+          description: Cohort below the minimum size required for anonymity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /v1/advisory/condition-reports:
+    get:
+      operationId: getPlainLanguageConditionReport
+      tags: [Advisory]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: connectionId
+          in: query
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Period"
+      responses:
+        "200":
+          description: Conclusions and recommended actions, not raw consumption data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeConditionReport"
+  /v1/governance/carbon-intensity:
+    get:
+      operationId: listCarbonIntensityRecords
+      tags: [Governance]
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Period"
+      responses:
+        "200":
+          description: Fuel mix and carbon intensity behind delivered heat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeCarbonIntensityRecord"
+  /v1/governance/events:
+    get:
+      operationId: listGovernanceEvents
+      tags: [Governance]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: eventType
+          in: query
+          schema:
+            type: string
+            enum:
+              - guarantee_revision
+              - price_revision
+              - safety_floor_override_refused
+              - underwriting_decline
+              - exit_package_released
+              - comparability_review
+      responses:
+        "200":
+          description: Audit trail of guarantee, price, and safety-floor events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeGovernanceEvent"
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    Period:
+      name: period
+      in: query
+      schema:
+        type: string
+        example: 2026-02
+    ConnectionId:
+      name: connectionId
+      in: path
+      required: true
+      schema:
+        type: string
+    GuaranteeId:
+      name: guaranteeId
+      in: path
+      required: true
+      schema:
+        type: string
+    FindingId:
+      name: findingId
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    Unauthorized:
+      description: Missing or invalid credentials
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    UnprocessableEntity:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+  schemas:
+    ResponseMeta:
+      type: object
+      required: [requestId, timestamp]
+      properties:
+        requestId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+    Money:
+      type: object
+      required: [amount, currency]
+      properties:
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+          example: EUR
+    CustomerSegment:
+      type: string
+      description: Segments from the source customer research
+      enum:
+        - housing_company
+        - single_occupant_house
+        - public_organisation
+        - business_industry_entrepreneur
+    HeatCustomer:
+      type: object
+      required: [id, name, segment]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        segment:
+          $ref: "#/components/schemas/CustomerSegment"
+        buildingManagerOrganisation:
+          type: string
+        connectionIds:
+          type: array
+          items:
+            type: string
+        alternativeHeatingRisk:
+          type: string
+          enum: [low, medium, high]
+    Substation:
+      type: object
+      required: [id, connectionId, heatExchangerCapacityKw]
+      properties:
+        id:
+          type: string
+        connectionId:
+          type: string
+        heatExchangerCapacityKw:
+          type: number
+          format: float
+        commissioningYear:
+          type: integer
+        remotelyReadable:
+          type: boolean
+        controlValveType:
+          type: string
+        healthScore:
+          type: integer
+          minimum: 1
+          maximum: 5
+    BuildingConnection:
+      type: object
+      required: [id, customerId, address, contractStatus]
+      properties:
+        id:
+          type: string
+        customerId:
+          type: string
+        address:
+          type: string
+        heatedFloorAreaM2:
+          type: number
+          format: float
+        buildYear:
+          type: integer
+        lastRenovationYear:
+          type: integer
+        networkZone:
+          type: string
+        contractStatus:
+          type: string
+          enum: [metered_tariff, under_underwriting, condition_contract, exited]
+        substation:
+          $ref: "#/components/schemas/Substation"
+        annualHeatDemandMwh:
+          type: number
+          format: float
+    BuildingConnectionCreate:
+      type: object
+      required: [customerId, address, networkZone]
+      properties:
+        customerId:
+          type: string
+        address:
+          type: string
+        heatedFloorAreaM2:
+          type: number
+          format: float
+        buildYear:
+          type: integer
+        networkZone:
+          type: string
+    BuildingThermalModel:
+      type: object
+      required: [connectionId, version, heatLossCoefficientWPerK]
+      properties:
+        connectionId:
+          type: string
+        version:
+          type: integer
+        heatLossCoefficientWPerK:
+          type: number
+          format: float
+        thermalTimeConstantHours:
+          type: number
+          format: float
+        balanceTemperatureC:
+          type: number
+          format: float
+        degreeDayBase:
+          type: number
+          format: float
+        minimumViableSupplyTemperatureC:
+          type: number
+          format: float
+        domesticHotWaterSharePercent:
+          type: number
+          format: float
+        fitQuality:
+          type: number
+          format: float
+        derivedFrom:
+          type: array
+          items:
+            type: string
+            enum: [substation_telemetry, heat_meter_history, weather_series, physical_survey, building_register]
+    UnderwritingRequest:
+      type: object
+      required: [conditionProductId]
+      properties:
+        conditionProductId:
+          type: string
+        surveyPerformed:
+          type: boolean
+        envelopeConditionNotes:
+          type: string
+        historyMonthsAvailable:
+          type: integer
+    UnderwritingAssessment:
+      type: object
+      required: [id, connectionId, decision, substationHealthScore, envelopeConditionGrade]
+      properties:
+        id:
+          type: string
+        connectionId:
+          type: string
+        conditionProductId:
+          type: string
+        decision:
+          type: string
+          enum: [offer, decline, remediate_first]
+        declineReason:
+          type: string
+          enum:
+            - insufficient_substation_capacity
+            - envelope_condition_too_poor
+            - persistent_high_return_temperature
+            - no_remote_read_available
+            - unresolved_building_side_fault
+        substationHealthScore:
+          type: integer
+          minimum: 1
+          maximum: 5
+        envelopeConditionGrade:
+          type: string
+          enum: [A, B, C, D, E]
+        modelledAnnualHeatMwh:
+          type: number
+          format: float
+        deliverabilityConfidence:
+          type: number
+          format: float
+        requiredRemediationProposalId:
+          type: string
+        assessedBy:
+          type: string
+        assessedAt:
+          type: string
+          format: date-time
+    ConditionProduct:
+      type: object
+      required: [id, name, indoorTemperatureBandC, hotWaterAvailability, responseTimeHours]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        plainLanguageSummary:
+          type: string
+        indoorTemperatureBandC:
+          type: object
+          properties:
+            minimum:
+              type: number
+              format: float
+            maximum:
+              type: number
+              format: float
+        hotWaterAvailability:
+          type: string
+          enum: [continuous, scheduled]
+        responseTimeHours:
+          type: integer
+        exclusions:
+          type: array
+          items:
+            type: string
+        includesBuildingSideMaintenance:
+          type: boolean
+    ConditionProductCreate:
+      type: object
+      required: [name, indoorTemperatureBandC, responseTimeHours]
+      properties:
+        name:
+          type: string
+        plainLanguageSummary:
+          type: string
+        indoorTemperatureBandC:
+          type: object
+          properties:
+            minimum:
+              type: number
+              format: float
+            maximum:
+              type: number
+              format: float
+        hotWaterAvailability:
+          type: string
+          enum: [continuous, scheduled]
+        responseTimeHours:
+          type: integer
+        exclusions:
+          type: array
+          items:
+            type: string
+    ConditionGuaranteeCreate:
+      type: object
+      required: [connectionId, conditionProductId, flatRatePriceId, termMonths]
+      properties:
+        connectionId:
+          type: string
+        conditionProductId:
+          type: string
+        flatRatePriceId:
+          type: string
+        termMonths:
+          type: integer
+        serviceCreditRatePercent:
+          type: number
+          format: float
+    ConditionGuarantee:
+      type: object
+      required: [id, connectionId, conditionProductId, status, flatMonthlyRate]
+      properties:
+        id:
+          type: string
+        connectionId:
+          type: string
+        conditionProductId:
+          type: string
+        status:
+          type: string
+          enum: [offered, active, in_revision, terminated]
+        flatMonthlyRate:
+          $ref: "#/components/schemas/Money"
+        termMonths:
+          type: integer
+        startsOn:
+          type: string
+          format: date
+        serviceCreditRatePercent:
+          type: number
+          format: float
+        exitTermsSummary:
+          type: string
+        revisionTriggers:
+          type: array
+          items:
+            type: string
+    SafetyFloor:
+      type: object
+      required: [name, floorValue, unit, overridable]
+      properties:
+        name:
+          type: string
+          enum:
+            - minimum_indoor_temperature
+            - minimum_domestic_hot_water_temperature
+            - minimum_circulation_temperature
+        floorValue:
+          type: number
+          format: float
+        unit:
+          type: string
+          example: degC
+        basis:
+          type: string
+          enum: [tenancy_obligation, legionella_control, building_code]
+        overridable:
+          type: boolean
+          example: false
+    PriceComponent:
+      type: object
+      required: [component, amount]
+      properties:
+        component:
+          type: string
+          enum:
+            - modelled_heat_cost
+            - fuel_and_carbon
+            - distribution_and_heat_loss
+            - substation_service
+            - guarantee_risk_margin
+            - advisory_service
+            - platform_and_administration
+        amount:
+          $ref: "#/components/schemas/Money"
+        plainLanguage:
+          type: string
+    FlatRatePriceRequest:
+      type: object
+      required: [connectionId, conditionProductId]
+      properties:
+        connectionId:
+          type: string
+        conditionProductId:
+          type: string
+        degreeDayNormalYear:
+          type: integer
+        carbonPricePerTonne:
+          $ref: "#/components/schemas/Money"
+    FlatRatePrice:
+      type: object
+      required: [id, connectionId, flatMonthlyRate, components]
+      properties:
+        id:
+          type: string
+        connectionId:
+          type: string
+        flatMonthlyRate:
+          $ref: "#/components/schemas/Money"
+        components:
+          type: array
+          items:
+            $ref: "#/components/schemas/PriceComponent"
+        degreeDayNormalYear:
+          type: integer
+        revisionTriggers:
+          type: array
+          items:
+            type: string
+            enum: [fuel_price_band, carbon_price_band, degree_day_deviation, building_renovation, term_anniversary]
+        customerAnnualExpenditureEstimate:
+          $ref: "#/components/schemas/Money"
+        comparedToMeteredTariff:
+          $ref: "#/components/schemas/Money"
+    TariffComparabilityCheck:
+      type: object
+      required: [guaranteeId, verdict]
+      properties:
+        guaranteeId:
+          type: string
+        verdict:
+          type: string
+          enum: [comparable, deviation_justified, deviation_unjustified]
+        cohortDefinition:
+          type: string
+        cohortSize:
+          type: integer
+        medianCohortRate:
+          $ref: "#/components/schemas/Money"
+        deviationPercent:
+          type: number
+          format: float
+        publishedTariffReference:
+          type: string
+        justification:
+          type: string
+        reviewedBy:
+          type: string
+    DemandForecast:
+      type: object
+      required: [horizonHours, points]
+      properties:
+        connectionId:
+          type: string
+        networkZone:
+          type: string
+        horizonHours:
+          type: integer
+        points:
+          type: array
+          items:
+            type: object
+            properties:
+              at:
+                type: string
+                format: date-time
+              demandKw:
+                type: number
+                format: float
+              outdoorTemperatureC:
+                type: number
+                format: float
+              occupancyFactor:
+                type: number
+                format: float
+        meanAbsolutePercentageError:
+          type: number
+          format: float
+        modelVersion:
+          type: string
+    SupplyTemperatureSetpointCreate:
+      type: object
+      required: [networkZone, targetSupplyTemperatureC, effectiveFrom]
+      properties:
+        networkZone:
+          type: string
+        targetSupplyTemperatureC:
+          type: number
+          format: float
+        effectiveFrom:
+          type: string
+          format: date-time
+        rationale:
+          type: string
+    SupplyTemperatureSetpoint:
+      type: object
+      required: [id, networkZone, targetSupplyTemperatureC, status]
+      properties:
+        id:
+          type: string
+        networkZone:
+          type: string
+        targetSupplyTemperatureC:
+          type: number
+          format: float
+        bindingConnectionId:
+          type: string
+          description: Connection whose minimum viable supply temperature constrains the zone
+        safetyFloorsRespected:
+          type: boolean
+        estimatedHeatLossReductionPercent:
+          type: number
+          format: float
+        status:
+          type: string
+          enum: [scheduled, active, refused, superseded]
+        refusalReason:
+          type: string
+        effectiveFrom:
+          type: string
+          format: date-time
+    ReturnTemperatureRecord:
+      type: object
+      required: [connectionId, measuredAt, returnTemperatureC]
+      properties:
+        connectionId:
+          type: string
+        measuredAt:
+          type: string
+          format: date-time
+        returnTemperatureC:
+          type: number
+          format: float
+        supplyTemperatureC:
+          type: number
+          format: float
+        deltaTK:
+          type: number
+          format: float
+        contractualMaximumC:
+          type: number
+          format: float
+        exceedanceKelvin:
+          type: number
+          format: float
+        annualisedCostToNetwork:
+          $ref: "#/components/schemas/Money"
+    FaultType:
+      type: string
+      enum:
+        - high_return_temperature
+        - heat_exchanger_fouling
+        - heat_exchanger_undersized
+        - control_valve_failure
+        - bypass_flow
+        - circulation_pump_fault
+        - sensor_drift
+        - domestic_hot_water_recirculation_loss
+    FaultFinding:
+      type: object
+      required: [id, connectionId, faultType, status, confidence]
+      properties:
+        id:
+          type: string
+        connectionId:
+          type: string
+        substationId:
+          type: string
+        faultType:
+          $ref: "#/components/schemas/FaultType"
+        status:
+          type: string
+          enum: [detected, triaged, dispatched, resolved, dismissed]
+        confidence:
+          type: number
+          format: float
+        suspectedCause:
+          type: string
+        evidence:
+          type: array
+          items:
+            type: string
+        detectedBeforeCustomerComplaint:
+          type: boolean
+        guaranteeAtRisk:
+          type: boolean
+        detectedAt:
+          type: string
+          format: date-time
+    WorkOrderCreate:
+      type: object
+      required: [priority]
+      properties:
+        priority:
+          type: string
+          enum: [routine, elevated, guarantee_critical]
+        assignedTechnician:
+          type: string
+        scheduledFor:
+          type: string
+          format: date-time
+        accessArrangement:
+          type: string
+    WorkOrder:
+      type: object
+      required: [id, findingId, connectionId, status, priority]
+      properties:
+        id:
+          type: string
+        findingId:
+          type: string
+        connectionId:
+          type: string
+        status:
+          type: string
+          enum: [dispatched, in_progress, completed, cancelled]
+        priority:
+          type: string
+          enum: [routine, elevated, guarantee_critical]
+        suspectedCause:
+          type: string
+        evidence:
+          type: array
+          items:
+            type: string
+        assignedTechnician:
+          type: string
+        externalSystemRef:
+          type: string
+    ConditionMeasurement:
+      type: object
+      required: [connectionId, measuredAt]
+      properties:
+        connectionId:
+          type: string
+        measuredAt:
+          type: string
+          format: date-time
+        indoorTemperatureC:
+          type: number
+          format: float
+        measurementPoint:
+          type: string
+          enum: [reference_dwelling, corridor_sensor, building_automation, substation_proxy]
+        hotWaterAvailable:
+          type: boolean
+        hotWaterTemperatureC:
+          type: number
+          format: float
+        withinGuarantee:
+          type: boolean
+    GuaranteeBreach:
+      type: object
+      required: [id, guaranteeId, breachType, detectedBy, period]
+      properties:
+        id:
+          type: string
+        guaranteeId:
+          type: string
+        connectionId:
+          type: string
+        breachType:
+          type: string
+          enum:
+            - indoor_temperature_below_band
+            - indoor_temperature_above_band
+            - hot_water_unavailable
+            - response_time_exceeded
+        detectedBy:
+          type: string
+          enum: [measurement, customer_report]
+        period:
+          type: string
+        durationHours:
+          type: number
+          format: float
+        excluded:
+          type: boolean
+        exclusionReference:
+          type: string
+        serviceCredit:
+          $ref: "#/components/schemas/ServiceCredit"
+    ServiceCredit:
+      type: object
+      required: [amount, basis]
+      properties:
+        id:
+          type: string
+        amount:
+          $ref: "#/components/schemas/Money"
+        basis:
+          type: string
+          enum: [pro_rata_duration, fixed_per_breach, escalating_repeat_breach]
+        appliedAutomatically:
+          type: boolean
+        invoiceId:
+          type: string
+    FlatRateInvoice:
+      type: object
+      required: [id, guaranteeId, period, grossAmount, netAmount]
+      properties:
+        id:
+          type: string
+        guaranteeId:
+          type: string
+        connectionId:
+          type: string
+        period:
+          type: string
+        grossAmount:
+          $ref: "#/components/schemas/Money"
+        serviceCreditTotal:
+          $ref: "#/components/schemas/Money"
+        netAmount:
+          $ref: "#/components/schemas/Money"
+        deliveredHeatMwh:
+          type: number
+          format: float
+          description: Reported for transparency only; it does not determine the price
+        carbonIntensityKgPerMwh:
+          type: number
+          format: float
+        issuedAt:
+          type: string
+          format: date-time
+    MarginReport:
+      type: object
+      required: [period]
+      properties:
+        period:
+          type: string
+        connectionsUnderConditionContract:
+          type: integer
+        grossMarginPerConnection:
+          $ref: "#/components/schemas/Money"
+        marginToVolumeCorrelation:
+          type: number
+          format: float
+          description: Correlation between margin and delivered megawatt-hours; target is near zero
+        serviceCreditShareOfConditionRevenuePercent:
+          type: number
+          format: float
+        advisoryRevenueSharePercent:
+          type: number
+          format: float
+        distributionHeatLossPercent:
+          type: number
+          format: float
+        medianNetworkReturnTemperatureC:
+          type: number
+          format: float
+        churnToAlternativeHeatingCount:
+          type: integer
+    RemediationProposalCreate:
+      type: object
+      required: [connectionId, measures]
+      properties:
+        connectionId:
+          type: string
+        measures:
+          type: array
+          items:
+            type: string
+            enum:
+              - substation_replacement
+              - control_valve_replacement
+              - hydronic_rebalancing
+              - radiator_thermostat_upgrade
+              - domestic_hot_water_circuit_repair
+              - envelope_insulation
+              - window_replacement
+              - ventilation_heat_recovery
+        benchmarkCohortId:
+          type: string
+    RemediationProposal:
+      type: object
+      required: [id, connectionId, status, measures]
+      properties:
+        id:
+          type: string
+        connectionId:
+          type: string
+        status:
+          type: string
+          enum: [drafted, issued, accepted, declined, completed]
+        measures:
+          type: array
+          items:
+            type: string
+        estimatedCapitalCost:
+          $ref: "#/components/schemas/Money"
+        annualExpenditureEffect:
+          $ref: "#/components/schemas/Money"
+          description: Effect on the customer's long-run annual user expenditure
+        paybackYears:
+          type: number
+          format: float
+        heatVolumeEffectMwh:
+          type: number
+          format: float
+          description: Negative where the proposal reduces the company's own heat sales
+        returnTemperatureEffectK:
+          type: number
+          format: float
+        plainLanguageConclusion:
+          type: string
+        benchmarkCohortId:
+          type: string
+    BenchmarkCohort:
+      type: object
+      required: [id, definition, cohortSize, anonymityThresholdMet]
+      properties:
+        id:
+          type: string
+        definition:
+          type: string
+        cohortSize:
+          type: integer
+        anonymityThresholdMet:
+          type: boolean
+        subjectConnectionId:
+          type: string
+        subjectPercentile:
+          type: number
+          format: float
+        medianSpecificHeatUseKwhPerM2:
+          type: number
+          format: float
+        medianReturnTemperatureC:
+          type: number
+          format: float
+        subjectSpecificHeatUseKwhPerM2:
+          type: number
+          format: float
+    ConditionReport:
+      type: object
+      required: [connectionId, period, conclusions]
+      properties:
+        connectionId:
+          type: string
+        period:
+          type: string
+        conclusions:
+          type: array
+          items:
+            type: string
+        recommendedActions:
+          type: array
+          items:
+            type: object
+            properties:
+              action:
+                type: string
+              ownedBy:
+                type: string
+                enum: [heating_company, building_manager, property_owner]
+              expectedEffect:
+                type: string
+        guaranteeStatus:
+          type: string
+          enum: [met, breached_and_credited, under_investigation]
+        rawDataIncluded:
+          type: boolean
+          example: false
+        annualExpenditureToDate:
+          $ref: "#/components/schemas/Money"
+    FuelMixRecord:
+      type: object
+      required: [fuel, sharePercent]
+      properties:
+        fuel:
+          type: string
+          enum: [biomass, waste_heat, natural_gas, coal, peat, electricity_heat_pump, solar_thermal, oil]
+        sharePercent:
+          type: number
+          format: float
+        emissionFactorKgPerMwh:
+          type: number
+          format: float
+        marginalCostPerMwh:
+          $ref: "#/components/schemas/Money"
+    CarbonIntensityRecord:
+      type: object
+      required: [period, intensityKgPerMwh]
+      properties:
+        period:
+          type: string
+        networkZone:
+          type: string
+        intensityKgPerMwh:
+          type: number
+          format: float
+        fuelMix:
+          type: array
+          items:
+            $ref: "#/components/schemas/FuelMixRecord"
+        disclosedToCustomers:
+          type: boolean
+    ExitPackage:
+      type: object
+      required: [id, guaranteeId, reason, releasedAt]
+      properties:
+        id:
+          type: string
+        guaranteeId:
+          type: string
+        connectionId:
+          type: string
+        reason:
+          type: string
+          enum: [customer_exit, transfer_to_third_party, method_change, end_of_term]
+        transferee:
+          type: string
+        includesThermalModel:
+          type: boolean
+        includesConditionHistory:
+          type: boolean
+        includesSubstationSettings:
+          type: boolean
+        releasedAt:
+          type: string
+          format: date-time
+    GovernanceEvent:
+      type: object
+      required: [id, eventType, actor, occurredAt]
+      properties:
+        id:
+          type: string
+        eventType:
+          type: string
+          enum:
+            - guarantee_revision
+            - price_revision
+            - safety_floor_override_refused
+            - underwriting_decline
+            - exit_package_released
+            - comparability_review
+        actor:
+          type: string
+        subjectId:
+          type: string
+        rationale:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+    DataEnvelopeBuildingConnection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/BuildingConnection"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeUnderwritingAssessment:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/UnderwritingAssessment"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeBuildingThermalModel:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/BuildingThermalModel"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeConditionProduct:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/ConditionProduct"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeConditionGuarantee:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/ConditionGuarantee"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeExitPackage:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/ExitPackage"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeFlatRatePrice:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/FlatRatePrice"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeTariffComparabilityCheck:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/TariffComparabilityCheck"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeDemandForecast:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/DemandForecast"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeSupplyTemperatureSetpoint:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/SupplyTemperatureSetpoint"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeReturnTemperatureRecord:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/ReturnTemperatureRecord"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeWorkOrder:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/WorkOrder"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeConditionMeasurement:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/ConditionMeasurement"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeFlatRateInvoice:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/FlatRateInvoice"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeMarginReport:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/MarginReport"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeRemediationProposal:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/RemediationProposal"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeBenchmarkCohort:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/BenchmarkCohort"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeConditionReport:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/ConditionReport"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeHeatCustomer:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/HeatCustomer"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeBuildingConnection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/BuildingConnection"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeConditionProduct:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/ConditionProduct"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeConditionGuarantee:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/ConditionGuarantee"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeSafetyFloor:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/SafetyFloor"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeSupplyTemperatureSetpoint:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/SupplyTemperatureSetpoint"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeReturnTemperatureRecord:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/ReturnTemperatureRecord"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeFaultFinding:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/FaultFinding"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeGuaranteeBreach:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/GuaranteeBreach"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeFlatRateInvoice:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/FlatRateInvoice"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeRemediationProposal:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/RemediationProposal"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeCarbonIntensityRecord:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/CarbonIntensityRecord"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeGovernanceEvent:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/GovernanceEvent"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
