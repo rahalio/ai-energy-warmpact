@@ -1,0 +1,136 @@
+openapi: 3.1.0
+info:
+  title: Underwriting API schemas
+  version: 0.1.0
+paths: {}
+components:
+  schemas:
+    UnderwritingAssessment:
+      type: object
+      required:
+      - id
+      - connectionId
+      - decision
+      - substationHealthScore
+      - envelopeConditionGrade
+      properties:
+        id:
+          type: string
+        connectionId:
+          type: string
+        conditionProductId:
+          type: string
+        decision:
+          type: string
+          enum:
+          - offer
+          - decline
+          - remediate_first
+        declineReason:
+          type: string
+          enum:
+          - insufficient_substation_capacity
+          - envelope_condition_too_poor
+          - persistent_high_return_temperature
+          - no_remote_read_available
+          - unresolved_building_side_fault
+        substationHealthScore:
+          type: integer
+          minimum: 1
+          maximum: 5
+        envelopeConditionGrade:
+          type: string
+          enum:
+          - A
+          - B
+          - C
+          - D
+          - E
+        modelledAnnualHeatMwh:
+          type: number
+          format: float
+        deliverabilityConfidence:
+          type: number
+          format: float
+        requiredRemediationProposalId:
+          type: string
+        assessedBy:
+          type: string
+        assessedAt:
+          type: string
+          format: date-time
+    UnderwritingRequest:
+      type: object
+      required:
+      - conditionProductId
+      properties:
+        conditionProductId:
+          type: string
+        surveyPerformed:
+          type: boolean
+        envelopeConditionNotes:
+          type: string
+        historyMonthsAvailable:
+          type: integer
+    DataEnvelopeUnderwritingAssessment:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/UnderwritingAssessment'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    DataEnvelopeBuildingThermalModel:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/BuildingThermalModel'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    BuildingThermalModel:
+      type: object
+      required:
+      - connectionId
+      - version
+      - heatLossCoefficientWPerK
+      properties:
+        connectionId:
+          type: string
+        version:
+          type: integer
+        heatLossCoefficientWPerK:
+          type: number
+          format: float
+        thermalTimeConstantHours:
+          type: number
+          format: float
+        balanceTemperatureC:
+          type: number
+          format: float
+        degreeDayBase:
+          type: number
+          format: float
+        minimumViableSupplyTemperatureC:
+          type: number
+          format: float
+        domesticHotWaterSharePercent:
+          type: number
+          format: float
+        fitQuality:
+          type: number
+          format: float
+        derivedFrom:
+          type: array
+          items:
+            type: string
+            enum:
+            - substation_telemetry
+            - heat_meter_history
+            - weather_series
+            - physical_survey
+            - building_register

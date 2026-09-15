@@ -1,0 +1,144 @@
+openapi: 3.1.0
+info:
+  title: Diagnostics API schemas
+  version: 0.1.0
+paths: {}
+components:
+  schemas:
+    WorkOrderCreate:
+      type: object
+      required:
+      - priority
+      properties:
+        priority:
+          type: string
+          enum:
+          - routine
+          - elevated
+          - guarantee_critical
+        assignedTechnician:
+          type: string
+        scheduledFor:
+          type: string
+          format: date-time
+        accessArrangement:
+          type: string
+    FaultFinding:
+      type: object
+      required:
+      - id
+      - connectionId
+      - faultType
+      - status
+      - confidence
+      properties:
+        id:
+          type: string
+        connectionId:
+          type: string
+        substationId:
+          type: string
+        faultType:
+          $ref: '#/components/schemas/FaultType'
+        status:
+          type: string
+          enum:
+          - detected
+          - triaged
+          - dispatched
+          - resolved
+          - dismissed
+        confidence:
+          type: number
+          format: float
+        suspectedCause:
+          type: string
+        evidence:
+          type: array
+          items:
+            type: string
+        detectedBeforeCustomerComplaint:
+          type: boolean
+        guaranteeAtRisk:
+          type: boolean
+        detectedAt:
+          type: string
+          format: date-time
+    ListEnvelopeFaultFinding:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: object
+          required:
+          - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/FaultFinding'
+            nextCursor:
+              type: string
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    DataEnvelopeWorkOrder:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/WorkOrder'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    FaultType:
+      type: string
+      enum:
+      - high_return_temperature
+      - heat_exchanger_fouling
+      - heat_exchanger_undersized
+      - control_valve_failure
+      - bypass_flow
+      - circulation_pump_fault
+      - sensor_drift
+      - domestic_hot_water_recirculation_loss
+    WorkOrder:
+      type: object
+      required:
+      - id
+      - findingId
+      - connectionId
+      - status
+      - priority
+      properties:
+        id:
+          type: string
+        findingId:
+          type: string
+        connectionId:
+          type: string
+        status:
+          type: string
+          enum:
+          - dispatched
+          - in_progress
+          - completed
+          - cancelled
+        priority:
+          type: string
+          enum:
+          - routine
+          - elevated
+          - guarantee_critical
+        suspectedCause:
+          type: string
+        evidence:
+          type: array
+          items:
+            type: string
+        assignedTechnician:
+          type: string
+        externalSystemRef:
+          type: string

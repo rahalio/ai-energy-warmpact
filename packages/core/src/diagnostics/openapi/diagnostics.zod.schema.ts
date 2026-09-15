@@ -1,0 +1,361 @@
+import { makeApi, Zodios, type ZodiosOptions } from '@zodios/core';
+import { z } from 'zod';
+
+const dispatchWorkOrder_Body = z
+  .object({
+    priority: z.enum(['routine', 'elevated', 'guarantee_critical']),
+    assignedTechnician: z.string().optional(),
+    scheduledFor: z.string().datetime({ offset: true }).optional(),
+    accessArrangement: z.string().optional(),
+  })
+  .passthrough();
+const FaultType = z.enum([
+  'high_return_temperature',
+  'heat_exchanger_fouling',
+  'heat_exchanger_undersized',
+  'control_valve_failure',
+  'bypass_flow',
+  'circulation_pump_fault',
+  'sensor_drift',
+  'domestic_hot_water_recirculation_loss',
+]);
+const Problem = z
+  .object({
+    type: z.string().url(),
+    title: z.string(),
+    status: z.number().int(),
+    detail: z.string(),
+    instance: z.string().url(),
+    code: z.string(),
+  })
+  .partial()
+  .passthrough();
+const FaultFinding = z
+  .object({
+    id: z.string(),
+    connectionId: z.string(),
+    substationId: z.string().optional(),
+    faultType: z.enum([
+      'high_return_temperature',
+      'heat_exchanger_fouling',
+      'heat_exchanger_undersized',
+      'control_valve_failure',
+      'bypass_flow',
+      'circulation_pump_fault',
+      'sensor_drift',
+      'domestic_hot_water_recirculation_loss',
+    ]),
+    status: z.enum([
+      'detected',
+      'triaged',
+      'dispatched',
+      'resolved',
+      'dismissed',
+    ]),
+    confidence: z.number(),
+    suspectedCause: z.string().optional(),
+    evidence: z.array(z.string()).optional(),
+    detectedBeforeCustomerComplaint: z.boolean().optional(),
+    guaranteeAtRisk: z.boolean().optional(),
+    detectedAt: z.string().datetime({ offset: true }).optional(),
+  })
+  .passthrough();
+const ResponseMeta = z
+  .object({
+    requestId: z.string().uuid(),
+    correlationId: z.string(),
+    generatedAt: z.string().datetime({ offset: true }),
+  })
+  .partial()
+  .passthrough();
+const ListEnvelopeFaultFinding = z
+  .object({
+    data: z
+      .object({
+        items: z.array(
+          z
+            .object({
+              id: z.string(),
+              connectionId: z.string(),
+              substationId: z.string().optional(),
+              faultType: z.enum([
+                'high_return_temperature',
+                'heat_exchanger_fouling',
+                'heat_exchanger_undersized',
+                'control_valve_failure',
+                'bypass_flow',
+                'circulation_pump_fault',
+                'sensor_drift',
+                'domestic_hot_water_recirculation_loss',
+              ]),
+              status: z.enum([
+                'detected',
+                'triaged',
+                'dispatched',
+                'resolved',
+                'dismissed',
+              ]),
+              confidence: z.number(),
+              suspectedCause: z.string().optional(),
+              evidence: z.array(z.string()).optional(),
+              detectedBeforeCustomerComplaint: z.boolean().optional(),
+              guaranteeAtRisk: z.boolean().optional(),
+              detectedAt: z.string().datetime({ offset: true }).optional(),
+            })
+            .passthrough()
+        ),
+        nextCursor: z.string().optional(),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough(),
+  })
+  .passthrough();
+const WorkOrderCreate = z
+  .object({
+    priority: z.enum(['routine', 'elevated', 'guarantee_critical']),
+    assignedTechnician: z.string().optional(),
+    scheduledFor: z.string().datetime({ offset: true }).optional(),
+    accessArrangement: z.string().optional(),
+  })
+  .passthrough();
+const WorkOrder = z
+  .object({
+    id: z.string(),
+    findingId: z.string(),
+    connectionId: z.string(),
+    status: z.enum(['dispatched', 'in_progress', 'completed', 'cancelled']),
+    priority: z.enum(['routine', 'elevated', 'guarantee_critical']),
+    suspectedCause: z.string().optional(),
+    evidence: z.array(z.string()).optional(),
+    assignedTechnician: z.string().optional(),
+    externalSystemRef: z.string().optional(),
+  })
+  .passthrough();
+const DataEnvelopeWorkOrder = z
+  .object({
+    data: z
+      .object({
+        id: z.string(),
+        findingId: z.string(),
+        connectionId: z.string(),
+        status: z.enum(['dispatched', 'in_progress', 'completed', 'cancelled']),
+        priority: z.enum(['routine', 'elevated', 'guarantee_critical']),
+        suspectedCause: z.string().optional(),
+        evidence: z.array(z.string()).optional(),
+        assignedTechnician: z.string().optional(),
+        externalSystemRef: z.string().optional(),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough(),
+  })
+  .passthrough();
+
+export const schemas: any = {
+  dispatchWorkOrder_Body,
+  FaultType,
+  Problem,
+  FaultFinding,
+  ResponseMeta,
+  ListEnvelopeFaultFinding,
+  WorkOrderCreate,
+  WorkOrder,
+  DataEnvelopeWorkOrder,
+};
+
+const endpoints = makeApi([
+  {
+    method: 'get',
+    path: '/v1/diagnostics/fault-findings',
+    alias: 'listFaultFindings',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'cursor',
+        type: 'Query',
+        schema: z.string().optional(),
+      },
+      {
+        name: 'limit',
+        type: 'Query',
+        schema: z.number().int().gte(1).lte(200).optional().default(50),
+      },
+      {
+        name: 'faultType',
+        type: 'Query',
+        schema: z
+          .enum([
+            'high_return_temperature',
+            'heat_exchanger_fouling',
+            'heat_exchanger_undersized',
+            'control_valve_failure',
+            'bypass_flow',
+            'circulation_pump_fault',
+            'sensor_drift',
+            'domestic_hot_water_recirculation_loss',
+          ])
+          .optional(),
+      },
+      {
+        name: 'status',
+        type: 'Query',
+        schema: z
+          .enum(['detected', 'triaged', 'dispatched', 'resolved', 'dismissed'])
+          .optional(),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            items: z.array(
+              z
+                .object({
+                  id: z.string(),
+                  connectionId: z.string(),
+                  substationId: z.string().optional(),
+                  faultType: z.enum([
+                    'high_return_temperature',
+                    'heat_exchanger_fouling',
+                    'heat_exchanger_undersized',
+                    'control_valve_failure',
+                    'bypass_flow',
+                    'circulation_pump_fault',
+                    'sensor_drift',
+                    'domestic_hot_water_recirculation_loss',
+                  ]),
+                  status: z.enum([
+                    'detected',
+                    'triaged',
+                    'dispatched',
+                    'resolved',
+                    'dismissed',
+                  ]),
+                  confidence: z.number(),
+                  suspectedCause: z.string().optional(),
+                  evidence: z.array(z.string()).optional(),
+                  detectedBeforeCustomerComplaint: z.boolean().optional(),
+                  guaranteeAtRisk: z.boolean().optional(),
+                  detectedAt: z.string().datetime({ offset: true }).optional(),
+                })
+                .passthrough()
+            ),
+            nextCursor: z.string().optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'post',
+    path: '/v1/diagnostics/fault-findings/:findingId/work-order',
+    alias: 'dispatchWorkOrder',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'body',
+        type: 'Body',
+        schema: dispatchWorkOrder_Body,
+      },
+      {
+        name: 'findingId',
+        type: 'Path',
+        schema: z.string(),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            id: z.string(),
+            findingId: z.string(),
+            connectionId: z.string(),
+            status: z.enum([
+              'dispatched',
+              'in_progress',
+              'completed',
+              'cancelled',
+            ]),
+            priority: z.enum(['routine', 'elevated', 'guarantee_critical']),
+            suspectedCause: z.string().optional(),
+            evidence: z.array(z.string()).optional(),
+            assignedTechnician: z.string().optional(),
+            externalSystemRef: z.string().optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 404,
+        description: `Resource not found`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+]);
+
+export const api: any = new Zodios(
+  'https://api.ddd-codegen-starter.local/v1',
+  endpoints
+);
+
+export function createApiClient(baseUrl: string, options?: ZodiosOptions): any {
+  return new Zodios(baseUrl, endpoints, options);
+}

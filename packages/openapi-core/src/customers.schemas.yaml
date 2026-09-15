@@ -1,0 +1,216 @@
+openapi: 3.1.0
+info:
+  title: Customers API schemas
+  version: 0.1.0
+paths: {}
+components:
+  schemas:
+    BuildingConnection:
+      type: object
+      required:
+      - id
+      - customerId
+      - address
+      - contractStatus
+      properties:
+        id:
+          type: string
+        customerId:
+          type: string
+        address:
+          type: string
+        heatedFloorAreaM2:
+          type: number
+          format: float
+        buildYear:
+          type: integer
+        lastRenovationYear:
+          type: integer
+        networkZone:
+          type: string
+        contractStatus:
+          type: string
+          enum:
+          - metered_tariff
+          - under_underwriting
+          - condition_contract
+          - exited
+        substation:
+          $ref: '#/components/schemas/Substation'
+        annualHeatDemandMwh:
+          type: number
+          format: float
+    CustomerSegment:
+      type: string
+      description: Segments from the source customer research
+      enum:
+      - housing_company
+      - single_occupant_house
+      - public_organisation
+      - business_industry_entrepreneur
+    ListEnvelopeHeatCustomer:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: object
+          required:
+          - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/HeatCustomer'
+            nextCursor:
+              type: string
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    ListEnvelopeBuildingConnection:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: object
+          required:
+          - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/BuildingConnection'
+            nextCursor:
+              type: string
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    HeatCustomer:
+      type: object
+      required:
+      - id
+      - name
+      - segment
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        segment:
+          $ref: '#/components/schemas/CustomerSegment'
+        buildingManagerOrganisation:
+          type: string
+        connectionIds:
+          type: array
+          items:
+            type: string
+        alternativeHeatingRisk:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+    DataEnvelopeBuildingConnection:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/BuildingConnection'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    Substation:
+      type: object
+      required:
+      - id
+      - connectionId
+      - heatExchangerCapacityKw
+      properties:
+        id:
+          type: string
+        connectionId:
+          type: string
+        heatExchangerCapacityKw:
+          type: number
+          format: float
+        commissioningYear:
+          type: integer
+        remotelyReadable:
+          type: boolean
+        controlValveType:
+          type: string
+        healthScore:
+          type: integer
+          minimum: 1
+          maximum: 5
+    BuildingConnectionCreate:
+      type: object
+      required:
+      - customerId
+      - address
+      - networkZone
+      properties:
+        customerId:
+          type: string
+        address:
+          type: string
+        heatedFloorAreaM2:
+          type: number
+          format: float
+        buildYear:
+          type: integer
+        networkZone:
+          type: string
+    SwitchRiskSignal:
+      type: object
+      required:
+      - id
+      - customerId
+      - riskLevel
+      - signals
+      properties:
+        id:
+          type: string
+        customerId:
+          type: string
+        connectionId:
+          type: string
+        riskLevel:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+        signals:
+          type: array
+          items:
+            type: string
+            enum:
+            - heat_pump_quote
+            - competitor_offer
+            - renovation_project
+            - complaint_volume
+            - contract_end_approaching
+        detectedAt:
+          type: string
+          format: date-time
+        notes:
+          type: string
+    ListEnvelopeSwitchRiskSignal:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/SwitchRiskSignal'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta

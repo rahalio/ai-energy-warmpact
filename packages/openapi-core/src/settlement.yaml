@@ -1,0 +1,216 @@
+openapi: 3.1.0
+info:
+  title: Settlement API
+  version: 0.1.0
+  description: 'Condition measurement, breaches, service credits, and invoices
+
+    '
+  license:
+    name: Proprietary
+    url: https://warmpact.local/license
+  x-domain: stl
+  x-product: warmpact
+servers:
+- url: https://api.warmpact.local
+  description: Local / product API
+security:
+- bearerAuth: []
+- apiKey: []
+tags:
+- name: Settlement
+  description: Condition measurement, breaches, service credits, and invoices
+paths:
+  /v1/settlement/condition-measurements:
+    post:
+      operationId: ingestConditionMeasurement
+      tags:
+      - Settlement
+      security:
+      - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./settlement.schemas.yaml#/components/schemas/ConditionMeasurement
+      responses:
+        '202':
+          description: Measurement accepted and compared to the active guarantee
+          content:
+            application/json:
+              schema:
+                $ref: ./settlement.schemas.yaml#/components/schemas/DataEnvelopeConditionMeasurement
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: ConditionMeasurement
+      x-dynamodb:
+        entityType: CONDITION_MEASUREMENT
+        pkPatternTemplate: TENANT#${tenantId}#CONDITION_MEASUREMENT#${measurementId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: Ingest Condition Measurement
+  /v1/settlement/breaches:
+    get:
+      operationId: listGuaranteeBreaches
+      tags:
+      - Settlement
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Period'
+      - name: detectedBy
+        in: query
+        schema:
+          type: string
+          enum:
+          - measurement
+          - customer_report
+      responses:
+        '200':
+          description: Breaches with the service credits applied
+          content:
+            application/json:
+              schema:
+                $ref: ./settlement.schemas.yaml#/components/schemas/ListEnvelopeGuaranteeBreach
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: GuaranteeBreach
+      x-dynamodb:
+        entityType: GUARANTEE_BREACH
+        pkPatternTemplate: TENANT#${tenantId}#GUARANTEE_BREACH#${breachId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: List Guarantee Breaches
+  /v1/settlement/invoices:
+    get:
+      operationId: listFlatRateInvoices
+      tags:
+      - Settlement
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Period'
+      responses:
+        '200':
+          description: Flat-rate invoices with automatic service credits
+          content:
+            application/json:
+              schema:
+                $ref: ./settlement.schemas.yaml#/components/schemas/ListEnvelopeFlatRateInvoice
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: FlatRateInvoice
+      x-dynamodb:
+        entityType: FLAT_RATE_INVOICE
+        pkPatternTemplate: TENANT#${tenantId}#FLAT_RATE_INVOICE#${invoiceId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: List Flat Rate Invoices
+    post:
+      operationId: issueFlatRateInvoice
+      tags:
+      - Settlement
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - guaranteeId
+              - period
+              properties:
+                guaranteeId:
+                  type: string
+                period:
+                  type: string
+                  example: 2026-02
+      responses:
+        '201':
+          description: Invoice issued with credits calculated from measured breaches
+          content:
+            application/json:
+              schema:
+                $ref: ./settlement.schemas.yaml#/components/schemas/DataEnvelopeFlatRateInvoice
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: FlatRateInvoice
+      x-dynamodb:
+        entityType: FLAT_RATE_INVOICE
+        pkPatternTemplate: TENANT#${tenantId}#FLAT_RATE_INVOICE#${invoiceId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: Issue Flat Rate Invoice
+  /v1/settlement/margin-report:
+    get:
+      operationId: getMarginPerConnectionReport
+      tags:
+      - Settlement
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/Period'
+      responses:
+        '200':
+          description: Gross margin per connection reported independently of delivered volume
+          content:
+            application/json:
+              schema:
+                $ref: ./settlement.schemas.yaml#/components/schemas/DataEnvelopeMarginReport
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: MarginReport
+      x-dynamodb:
+        entityType: MARGIN_REPORT
+        pkPatternTemplate: TENANT#${tenantId}#MARGIN_REPORT#${period}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: Get Margin Per Connection Report
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Tenant API key. Implies tenant isolation.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Operator session JWT from identity auth.
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    Period:
+      name: period
+      in: query
+      schema:
+        type: string
+        example: 2026-02

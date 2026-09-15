@@ -1,0 +1,373 @@
+import { makeApi, Zodios, type ZodiosOptions } from '@zodios/core';
+import { z } from 'zod';
+
+const Problem = z
+  .object({
+    type: z.string().url(),
+    title: z.string(),
+    status: z.number().int(),
+    detail: z.string(),
+    instance: z.string().url(),
+    code: z.string(),
+  })
+  .partial()
+  .passthrough();
+const Money = z
+  .object({ amount: z.number(), currency: z.string() })
+  .passthrough();
+const FuelMixRecord = z
+  .object({
+    fuel: z.enum([
+      'biomass',
+      'waste_heat',
+      'natural_gas',
+      'coal',
+      'peat',
+      'electricity_heat_pump',
+      'solar_thermal',
+      'oil',
+    ]),
+    sharePercent: z.number(),
+    emissionFactorKgPerMwh: z.number().optional(),
+    marginalCostPerMwh: z
+      .object({ amount: z.number(), currency: z.string() })
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+const CarbonIntensityRecord = z
+  .object({
+    period: z.string(),
+    networkZone: z.string().optional(),
+    intensityKgPerMwh: z.number(),
+    fuelMix: z
+      .array(
+        z
+          .object({
+            fuel: z.enum([
+              'biomass',
+              'waste_heat',
+              'natural_gas',
+              'coal',
+              'peat',
+              'electricity_heat_pump',
+              'solar_thermal',
+              'oil',
+            ]),
+            sharePercent: z.number(),
+            emissionFactorKgPerMwh: z.number().optional(),
+            marginalCostPerMwh: z
+              .object({ amount: z.number(), currency: z.string() })
+              .passthrough()
+              .optional(),
+          })
+          .passthrough()
+      )
+      .optional(),
+    disclosedToCustomers: z.boolean().optional(),
+  })
+  .passthrough();
+const ResponseMeta = z
+  .object({
+    requestId: z.string().uuid(),
+    correlationId: z.string(),
+    generatedAt: z.string().datetime({ offset: true }),
+  })
+  .partial()
+  .passthrough();
+const ListEnvelopeCarbonIntensityRecord = z
+  .object({
+    data: z
+      .object({
+        items: z.array(
+          z
+            .object({
+              period: z.string(),
+              networkZone: z.string().optional(),
+              intensityKgPerMwh: z.number(),
+              fuelMix: z
+                .array(
+                  z
+                    .object({
+                      fuel: z.enum([
+                        'biomass',
+                        'waste_heat',
+                        'natural_gas',
+                        'coal',
+                        'peat',
+                        'electricity_heat_pump',
+                        'solar_thermal',
+                        'oil',
+                      ]),
+                      sharePercent: z.number(),
+                      emissionFactorKgPerMwh: z.number().optional(),
+                      marginalCostPerMwh: z
+                        .object({ amount: z.number(), currency: z.string() })
+                        .passthrough()
+                        .optional(),
+                    })
+                    .passthrough()
+                )
+                .optional(),
+              disclosedToCustomers: z.boolean().optional(),
+            })
+            .passthrough()
+        ),
+        nextCursor: z.string().optional(),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough(),
+  })
+  .passthrough();
+const GovernanceEvent = z
+  .object({
+    id: z.string(),
+    eventType: z.enum([
+      'guarantee_revision',
+      'price_revision',
+      'safety_floor_override_refused',
+      'underwriting_decline',
+      'exit_package_released',
+      'comparability_review',
+    ]),
+    actor: z.string(),
+    subjectId: z.string().optional(),
+    rationale: z.string().optional(),
+    occurredAt: z.string().datetime({ offset: true }),
+  })
+  .passthrough();
+const ListEnvelopeGovernanceEvent = z
+  .object({
+    data: z
+      .object({
+        items: z.array(
+          z
+            .object({
+              id: z.string(),
+              eventType: z.enum([
+                'guarantee_revision',
+                'price_revision',
+                'safety_floor_override_refused',
+                'underwriting_decline',
+                'exit_package_released',
+                'comparability_review',
+              ]),
+              actor: z.string(),
+              subjectId: z.string().optional(),
+              rationale: z.string().optional(),
+              occurredAt: z.string().datetime({ offset: true }),
+            })
+            .passthrough()
+        ),
+        nextCursor: z.string().optional(),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough(),
+  })
+  .passthrough();
+
+export const schemas: any = {
+  Problem,
+  Money,
+  FuelMixRecord,
+  CarbonIntensityRecord,
+  ResponseMeta,
+  ListEnvelopeCarbonIntensityRecord,
+  GovernanceEvent,
+  ListEnvelopeGovernanceEvent,
+};
+
+const endpoints = makeApi([
+  {
+    method: 'get',
+    path: '/v1/governance/carbon-intensity',
+    alias: 'listCarbonIntensityRecords',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'period',
+        type: 'Query',
+        schema: z.string().optional(),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            items: z.array(
+              z
+                .object({
+                  period: z.string(),
+                  networkZone: z.string().optional(),
+                  intensityKgPerMwh: z.number(),
+                  fuelMix: z
+                    .array(
+                      z
+                        .object({
+                          fuel: z.enum([
+                            'biomass',
+                            'waste_heat',
+                            'natural_gas',
+                            'coal',
+                            'peat',
+                            'electricity_heat_pump',
+                            'solar_thermal',
+                            'oil',
+                          ]),
+                          sharePercent: z.number(),
+                          emissionFactorKgPerMwh: z.number().optional(),
+                          marginalCostPerMwh: z
+                            .object({
+                              amount: z.number(),
+                              currency: z.string(),
+                            })
+                            .passthrough()
+                            .optional(),
+                        })
+                        .passthrough()
+                    )
+                    .optional(),
+                  disclosedToCustomers: z.boolean().optional(),
+                })
+                .passthrough()
+            ),
+            nextCursor: z.string().optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'get',
+    path: '/v1/governance/events',
+    alias: 'listGovernanceEvents',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'cursor',
+        type: 'Query',
+        schema: z.string().optional(),
+      },
+      {
+        name: 'limit',
+        type: 'Query',
+        schema: z.number().int().gte(1).lte(200).optional().default(50),
+      },
+      {
+        name: 'eventType',
+        type: 'Query',
+        schema: z
+          .enum([
+            'guarantee_revision',
+            'price_revision',
+            'safety_floor_override_refused',
+            'underwriting_decline',
+            'exit_package_released',
+            'comparability_review',
+          ])
+          .optional(),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            items: z.array(
+              z
+                .object({
+                  id: z.string(),
+                  eventType: z.enum([
+                    'guarantee_revision',
+                    'price_revision',
+                    'safety_floor_override_refused',
+                    'underwriting_decline',
+                    'exit_package_released',
+                    'comparability_review',
+                  ]),
+                  actor: z.string(),
+                  subjectId: z.string().optional(),
+                  rationale: z.string().optional(),
+                  occurredAt: z.string().datetime({ offset: true }),
+                })
+                .passthrough()
+            ),
+            nextCursor: z.string().optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+]);
+
+export const api: any = new Zodios(
+  'https://api.ddd-codegen-starter.local/v1',
+  endpoints
+);
+
+export function createApiClient(baseUrl: string, options?: ZodiosOptions): any {
+  return new Zodios(baseUrl, endpoints, options);
+}

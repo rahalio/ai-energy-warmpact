@@ -1,0 +1,192 @@
+openapi: 3.1.0
+info:
+  title: Network Optimisation API schemas
+  version: 0.1.0
+paths: {}
+components:
+  schemas:
+    ListEnvelopeReturnTemperatureRecord:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: object
+          required:
+          - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ReturnTemperatureRecord'
+            nextCursor:
+              type: string
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    ReturnTemperatureRecord:
+      type: object
+      required:
+      - connectionId
+      - measuredAt
+      - returnTemperatureC
+      properties:
+        connectionId:
+          type: string
+        measuredAt:
+          type: string
+          format: date-time
+        returnTemperatureC:
+          type: number
+          format: float
+        supplyTemperatureC:
+          type: number
+          format: float
+        deltaTK:
+          type: number
+          format: float
+        contractualMaximumC:
+          type: number
+          format: float
+        exceedanceKelvin:
+          type: number
+          format: float
+        annualisedCostToNetwork:
+          $ref: '#/components/schemas/Money'
+    SupplyTemperatureSetpointCreate:
+      type: object
+      required:
+      - networkZone
+      - targetSupplyTemperatureC
+      - effectiveFrom
+      properties:
+        networkZone:
+          type: string
+        targetSupplyTemperatureC:
+          type: number
+          format: float
+        effectiveFrom:
+          type: string
+          format: date-time
+        rationale:
+          type: string
+    ListEnvelopeSupplyTemperatureSetpoint:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: object
+          required:
+          - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/SupplyTemperatureSetpoint'
+            nextCursor:
+              type: string
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    SupplyTemperatureSetpoint:
+      type: object
+      required:
+      - id
+      - networkZone
+      - targetSupplyTemperatureC
+      - status
+      properties:
+        id:
+          type: string
+        networkZone:
+          type: string
+        targetSupplyTemperatureC:
+          type: number
+          format: float
+        bindingConnectionId:
+          type: string
+          description: Connection whose minimum viable supply temperature constrains the zone
+        safetyFloorsRespected:
+          type: boolean
+        estimatedHeatLossReductionPercent:
+          type: number
+          format: float
+        status:
+          type: string
+          enum:
+          - scheduled
+          - active
+          - refused
+          - superseded
+        refusalReason:
+          type: string
+        effectiveFrom:
+          type: string
+          format: date-time
+    DataEnvelopeSupplyTemperatureSetpoint:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/SupplyTemperatureSetpoint'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    DataEnvelopeReturnTemperatureRecord:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/ReturnTemperatureRecord'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    Money:
+      type: object
+      required:
+      - amount
+      - currency
+      properties:
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+          example: EUR
+    BindingConnectionConstraint:
+      type: object
+      required:
+      - connectionId
+      - constrainsSetpoint
+      - reason
+      properties:
+        connectionId:
+          type: string
+        networkZone:
+          type: string
+        constrainsSetpoint:
+          type: boolean
+        minimumSupplyTemperatureC:
+          type: number
+          format: float
+        reason:
+          type: string
+    ListEnvelopeBindingConnectionConstraint:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/BindingConnectionConstraint'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta

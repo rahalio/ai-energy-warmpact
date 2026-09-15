@@ -1,0 +1,129 @@
+openapi: 3.1.0
+info:
+  title: Governance API schemas
+  version: 0.1.0
+paths: {}
+components:
+  schemas:
+    GovernanceEvent:
+      type: object
+      required:
+      - id
+      - eventType
+      - actor
+      - occurredAt
+      properties:
+        id:
+          type: string
+        eventType:
+          type: string
+          enum:
+          - guarantee_revision
+          - price_revision
+          - safety_floor_override_refused
+          - underwriting_decline
+          - exit_package_released
+          - comparability_review
+        actor:
+          type: string
+        subjectId:
+          type: string
+        rationale:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+    ListEnvelopeGovernanceEvent:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: object
+          required:
+          - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/GovernanceEvent'
+            nextCursor:
+              type: string
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    CarbonIntensityRecord:
+      type: object
+      required:
+      - period
+      - intensityKgPerMwh
+      properties:
+        period:
+          type: string
+        networkZone:
+          type: string
+        intensityKgPerMwh:
+          type: number
+          format: float
+        fuelMix:
+          type: array
+          items:
+            $ref: '#/components/schemas/FuelMixRecord'
+        disclosedToCustomers:
+          type: boolean
+    ListEnvelopeCarbonIntensityRecord:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: object
+          required:
+          - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/CarbonIntensityRecord'
+            nextCursor:
+              type: string
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    FuelMixRecord:
+      type: object
+      required:
+      - fuel
+      - sharePercent
+      properties:
+        fuel:
+          type: string
+          enum:
+          - biomass
+          - waste_heat
+          - natural_gas
+          - coal
+          - peat
+          - electricity_heat_pump
+          - solar_thermal
+          - oil
+        sharePercent:
+          type: number
+          format: float
+        emissionFactorKgPerMwh:
+          type: number
+          format: float
+        marginalCostPerMwh:
+          $ref: '#/components/schemas/Money'
+    Money:
+      type: object
+      required:
+      - amount
+      - currency
+      properties:
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+          example: EUR

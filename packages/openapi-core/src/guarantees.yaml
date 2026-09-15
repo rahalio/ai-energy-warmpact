@@ -1,0 +1,290 @@
+openapi: 3.1.0
+info:
+  title: Guarantees API
+  version: 0.1.0
+  description: 'Condition products, guarantees, safety floors, and exit packages
+
+    '
+  license:
+    name: Proprietary
+    url: https://warmpact.local/license
+  x-domain: grt
+  x-product: warmpact
+servers:
+- url: https://api.warmpact.local
+  description: Local / product API
+security:
+- bearerAuth: []
+- apiKey: []
+tags:
+- name: Guarantees
+  description: Condition products, guarantees, safety floors, and exit packages
+paths:
+  /v1/condition-products:
+    get:
+      operationId: listConditionProducts
+      tags:
+      - Guarantees
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Guarantee templates available for sale
+          content:
+            application/json:
+              schema:
+                $ref: ./guarantees.schemas.yaml#/components/schemas/ListEnvelopeConditionProduct
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: ConditionProduct
+      x-dynamodb:
+        entityType: CONDITION_PRODUCT
+        pkPatternTemplate: TENANT#${tenantId}#CONDITION_PRODUCT#${productId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: List Condition Products
+    post:
+      operationId: createConditionProduct
+      tags:
+      - Guarantees
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./guarantees.schemas.yaml#/components/schemas/ConditionProductCreate
+      responses:
+        '201':
+          description: Condition product defined in plain language with exclusions
+          content:
+            application/json:
+              schema:
+                $ref: ./guarantees.schemas.yaml#/components/schemas/DataEnvelopeConditionProduct
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: ConditionProduct
+      x-dynamodb:
+        entityType: CONDITION_PRODUCT
+        pkPatternTemplate: TENANT#${tenantId}#CONDITION_PRODUCT#${productId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: Create Condition Product
+  /v1/guarantees:
+    get:
+      operationId: listConditionGuarantees
+      tags:
+      - Guarantees
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum:
+          - offered
+          - active
+          - in_revision
+          - terminated
+      responses:
+        '200':
+          description: Condition guarantees page
+          content:
+            application/json:
+              schema:
+                $ref: ./guarantees.schemas.yaml#/components/schemas/ListEnvelopeConditionGuarantee
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: ConditionGuarantee
+      x-dynamodb:
+        entityType: CONDITION_GUARANTEE
+        pkPatternTemplate: TENANT#${tenantId}#CONDITION_GUARANTEE#${guaranteeId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: List Condition Guarantees
+    post:
+      operationId: offerConditionGuarantee
+      tags:
+      - Guarantees
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./guarantees.schemas.yaml#/components/schemas/ConditionGuaranteeCreate
+      responses:
+        '201':
+          description: Guarantee offered with flat rate, exclusions, and exit terms
+          content:
+            application/json:
+              schema:
+                $ref: ./guarantees.schemas.yaml#/components/schemas/DataEnvelopeConditionGuarantee
+        '409':
+          description: Connection has no accepted underwriting assessment
+          content:
+            application/json:
+              schema:
+                $ref: ./common/problem.yaml#/components/schemas/Problem
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: ConditionGuarantee
+      x-dynamodb:
+        entityType: CONDITION_GUARANTEE
+        pkPatternTemplate: TENANT#${tenantId}#CONDITION_GUARANTEE#${guaranteeId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: Offer Condition Guarantee
+  /v1/guarantees/{guaranteeId}/exit-package:
+    parameters:
+    - $ref: '#/components/parameters/GuaranteeId'
+    post:
+      operationId: releaseExitPackage
+      tags:
+      - Guarantees
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - reason
+              properties:
+                reason:
+                  type: string
+                  enum:
+                  - customer_exit
+                  - transfer_to_third_party
+                  - method_change
+                  - end_of_term
+                transferee:
+                  type: string
+      responses:
+        '201':
+          description: Building model, condition history, and settings released to the customer
+          content:
+            application/json:
+              schema:
+                $ref: ./guarantees.schemas.yaml#/components/schemas/DataEnvelopeExitPackage
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: ExitPackage
+      x-dynamodb:
+        entityType: EXIT_PACKAGE
+        pkPatternTemplate: TENANT#${tenantId}#CONDITION_GUARANTEE#${guaranteeId}
+        skPatternTemplate: EXIT_PACKAGE
+        pkPattern: template
+      summary: Release Exit Package
+  /v1/safety-floors:
+    get:
+      operationId: getSafetyFloors
+      tags:
+      - Guarantees
+      security:
+      - apiKey: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Non-negotiable indoor and hot water temperature floors
+          content:
+            application/json:
+              schema:
+                $ref: ./guarantees.schemas.yaml#/components/schemas/ListEnvelopeSafetyFloor
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: SafetyFloor
+      x-dynamodb:
+        entityType: SAFETY_FLOOR
+        pkPatternTemplate: TENANT#${tenantId}#SAFETY_FLOOR#${name}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: Get Safety Floors
+  /v1/safety-floors/override-attempts:
+    post:
+      operationId: attemptSafetyFloorOverride
+      tags:
+      - Guarantees
+      summary: Attempt to override a safety floor (always refused and logged)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - floorName
+              - attemptedValue
+              properties:
+                floorName:
+                  type: string
+                attemptedValue:
+                  type: number
+                  format: float
+                requestedBy:
+                  type: string
+      x-repository: none
+      responses:
+        '200':
+          description: Override refused and logged
+          content:
+            application/json:
+              schema:
+                $ref: ./guarantees.schemas.yaml#/components/schemas/DataEnvelopeSafetyFloorOverrideAttempt
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Tenant API key. Implies tenant isolation.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Operator session JWT from identity auth.
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    GuaranteeId:
+      name: guaranteeId
+      in: path
+      required: true
+      schema:
+        type: string

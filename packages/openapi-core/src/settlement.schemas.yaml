@@ -1,0 +1,235 @@
+openapi: 3.1.0
+info:
+  title: Settlement API schemas
+  version: 0.1.0
+paths: {}
+components:
+  schemas:
+    ListEnvelopeGuaranteeBreach:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: object
+          required:
+          - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/GuaranteeBreach'
+            nextCursor:
+              type: string
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    DataEnvelopeFlatRateInvoice:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/FlatRateInvoice'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    GuaranteeBreach:
+      type: object
+      required:
+      - id
+      - guaranteeId
+      - breachType
+      - detectedBy
+      - period
+      properties:
+        id:
+          type: string
+        guaranteeId:
+          type: string
+        connectionId:
+          type: string
+        breachType:
+          type: string
+          enum:
+          - indoor_temperature_below_band
+          - indoor_temperature_above_band
+          - hot_water_unavailable
+          - response_time_exceeded
+        detectedBy:
+          type: string
+          enum:
+          - measurement
+          - customer_report
+        period:
+          type: string
+        durationHours:
+          type: number
+          format: float
+        excluded:
+          type: boolean
+        exclusionReference:
+          type: string
+        serviceCredit:
+          $ref: '#/components/schemas/ServiceCredit'
+    FlatRateInvoice:
+      type: object
+      required:
+      - id
+      - guaranteeId
+      - period
+      - grossAmount
+      - netAmount
+      properties:
+        id:
+          type: string
+        guaranteeId:
+          type: string
+        connectionId:
+          type: string
+        period:
+          type: string
+        grossAmount:
+          $ref: '#/components/schemas/Money'
+        serviceCreditTotal:
+          $ref: '#/components/schemas/Money'
+        netAmount:
+          $ref: '#/components/schemas/Money'
+        deliveredHeatMwh:
+          type: number
+          format: float
+          description: Reported for transparency only; it does not determine the price
+        carbonIntensityKgPerMwh:
+          type: number
+          format: float
+        issuedAt:
+          type: string
+          format: date-time
+    ServiceCredit:
+      type: object
+      required:
+      - amount
+      - basis
+      properties:
+        id:
+          type: string
+        amount:
+          $ref: '#/components/schemas/Money'
+        basis:
+          type: string
+          enum:
+          - pro_rata_duration
+          - fixed_per_breach
+          - escalating_repeat_breach
+        appliedAutomatically:
+          type: boolean
+        invoiceId:
+          type: string
+    DataEnvelopeMarginReport:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/MarginReport'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    MarginReport:
+      type: object
+      required:
+      - period
+      properties:
+        period:
+          type: string
+        connectionsUnderConditionContract:
+          type: integer
+        grossMarginPerConnection:
+          $ref: '#/components/schemas/Money'
+        marginToVolumeCorrelation:
+          type: number
+          format: float
+          description: Correlation between margin and delivered megawatt-hours; target is near zero
+        serviceCreditShareOfConditionRevenuePercent:
+          type: number
+          format: float
+        advisoryRevenueSharePercent:
+          type: number
+          format: float
+        distributionHeatLossPercent:
+          type: number
+          format: float
+        medianNetworkReturnTemperatureC:
+          type: number
+          format: float
+        churnToAlternativeHeatingCount:
+          type: integer
+    DataEnvelopeConditionMeasurement:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/ConditionMeasurement'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    ListEnvelopeFlatRateInvoice:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: object
+          required:
+          - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/FlatRateInvoice'
+            nextCursor:
+              type: string
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    ConditionMeasurement:
+      type: object
+      required:
+      - connectionId
+      - measuredAt
+      properties:
+        connectionId:
+          type: string
+        measuredAt:
+          type: string
+          format: date-time
+        indoorTemperatureC:
+          type: number
+          format: float
+        measurementPoint:
+          type: string
+          enum:
+          - reference_dwelling
+          - corridor_sensor
+          - building_automation
+          - substation_proxy
+        hotWaterAvailable:
+          type: boolean
+        hotWaterTemperatureC:
+          type: number
+          format: float
+        withinGuarantee:
+          type: boolean
+    Money:
+      type: object
+      required:
+      - amount
+      - currency
+      properties:
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+          example: EUR

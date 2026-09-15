@@ -1,0 +1,215 @@
+openapi: 3.1.0
+info:
+  title: Customers API
+  version: 0.1.0
+  description: 'Heat customers, building connections, and substations
+
+    '
+  license:
+    name: Proprietary
+    url: https://warmpact.local/license
+  x-domain: cst
+  x-product: warmpact
+servers:
+- url: https://api.warmpact.local
+  description: Local / product API
+security:
+- bearerAuth: []
+- apiKey: []
+tags:
+- name: Customers
+  description: Heat customers, building connections, and substations
+paths:
+  /v1/customers:
+    get:
+      operationId: listHeatCustomers
+      tags:
+      - Customers
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      - name: segment
+        in: query
+        schema:
+          $ref: ./customers.schemas.yaml#/components/schemas/CustomerSegment
+      responses:
+        '200':
+          description: Heat customers page
+          content:
+            application/json:
+              schema:
+                $ref: ./customers.schemas.yaml#/components/schemas/ListEnvelopeHeatCustomer
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: HeatCustomer
+      x-dynamodb:
+        entityType: HEAT_CUSTOMER
+        pkPatternTemplate: TENANT#${tenantId}#HEAT_CUSTOMER#${customerId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: List Heat Customers
+  /v1/connections:
+    get:
+      operationId: listBuildingConnections
+      tags:
+      - Customers
+      security:
+      - apiKey: []
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      - name: customerId
+        in: query
+        schema:
+          type: string
+      - name: contractStatus
+        in: query
+        schema:
+          type: string
+          enum:
+          - metered_tariff
+          - under_underwriting
+          - condition_contract
+          - exited
+      responses:
+        '200':
+          description: Building connections page
+          content:
+            application/json:
+              schema:
+                $ref: ./customers.schemas.yaml#/components/schemas/ListEnvelopeBuildingConnection
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: BuildingConnection
+      x-dynamodb:
+        entityType: BUILDING_CONNECTION
+        pkPatternTemplate: TENANT#${tenantId}#BUILDING_CONNECTION#${connectionId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: List Building Connections
+    post:
+      operationId: registerBuildingConnection
+      tags:
+      - Customers
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./customers.schemas.yaml#/components/schemas/BuildingConnectionCreate
+      responses:
+        '201':
+          description: Connection registered with its substation
+          content:
+            application/json:
+              schema:
+                $ref: ./customers.schemas.yaml#/components/schemas/DataEnvelopeBuildingConnection
+        '422':
+          $ref: ./common/responses.yaml#/components/responses/UnprocessableEntity
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: BuildingConnection
+      x-dynamodb:
+        entityType: BUILDING_CONNECTION
+        pkPatternTemplate: TENANT#${tenantId}#BUILDING_CONNECTION#${connectionId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: Register Building Connection
+  /v1/connections/{connectionId}:
+    parameters:
+    - $ref: '#/components/parameters/ConnectionId'
+    get:
+      operationId: getBuildingConnection
+      tags:
+      - Customers
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Connection with substation, thermal model, and guarantee status
+          content:
+            application/json:
+              schema:
+                $ref: ./customers.schemas.yaml#/components/schemas/DataEnvelopeBuildingConnection
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: BuildingConnection
+      x-dynamodb:
+        entityType: BUILDING_CONNECTION
+        pkPatternTemplate: TENANT#${tenantId}#BUILDING_CONNECTION#${connectionId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: Get Building Connection
+  /v1/switch-risk-signals:
+    get:
+      operationId: listSwitchRiskSignals
+      tags:
+      - Customers
+      summary: List alternative-heating / switch-risk signals
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      - name: riskLevel
+        in: query
+        schema:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+      responses:
+        '200':
+          description: Switch-risk signals
+          content:
+            application/json:
+              schema:
+                $ref: ./customers.schemas.yaml#/components/schemas/ListEnvelopeSwitchRiskSignal
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Tenant API key. Implies tenant isolation.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Operator session JWT from identity auth.
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    ConnectionId:
+      name: connectionId
+      in: path
+      required: true
+      schema:
+        type: string

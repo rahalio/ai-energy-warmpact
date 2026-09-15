@@ -1,0 +1,596 @@
+import { makeApi, Zodios, type ZodiosOptions } from '@zodios/core';
+import { z } from 'zod';
+
+const issueRemediationProposal_Body = z
+  .object({
+    connectionId: z.string(),
+    measures: z.array(
+      z.enum([
+        'substation_replacement',
+        'control_valve_replacement',
+        'hydronic_rebalancing',
+        'radiator_thermostat_upgrade',
+        'domestic_hot_water_circuit_repair',
+        'envelope_insulation',
+        'window_replacement',
+        'ventilation_heat_recovery',
+      ])
+    ),
+    benchmarkCohortId: z.string().optional(),
+  })
+  .passthrough();
+const Problem = z
+  .object({
+    type: z.string().url(),
+    title: z.string(),
+    status: z.number().int(),
+    detail: z.string(),
+    instance: z.string().url(),
+    code: z.string(),
+  })
+  .partial()
+  .passthrough();
+const Money = z
+  .object({ amount: z.number(), currency: z.string() })
+  .passthrough();
+const RemediationProposal = z
+  .object({
+    id: z.string(),
+    connectionId: z.string(),
+    status: z.enum(['drafted', 'issued', 'accepted', 'declined', 'completed']),
+    measures: z.array(z.string()),
+    estimatedCapitalCost: z
+      .object({ amount: z.number(), currency: z.string() })
+      .passthrough()
+      .optional(),
+    annualExpenditureEffect: z
+      .object({ amount: z.number(), currency: z.string() })
+      .passthrough()
+      .optional(),
+    paybackYears: z.number().optional(),
+    heatVolumeEffectMwh: z.number().optional(),
+    returnTemperatureEffectK: z.number().optional(),
+    plainLanguageConclusion: z.string().optional(),
+    benchmarkCohortId: z.string().optional(),
+  })
+  .passthrough();
+const ResponseMeta = z
+  .object({
+    requestId: z.string().uuid(),
+    correlationId: z.string(),
+    generatedAt: z.string().datetime({ offset: true }),
+  })
+  .partial()
+  .passthrough();
+const ListEnvelopeRemediationProposal = z
+  .object({
+    data: z
+      .object({
+        items: z.array(
+          z
+            .object({
+              id: z.string(),
+              connectionId: z.string(),
+              status: z.enum([
+                'drafted',
+                'issued',
+                'accepted',
+                'declined',
+                'completed',
+              ]),
+              measures: z.array(z.string()),
+              estimatedCapitalCost: z
+                .object({ amount: z.number(), currency: z.string() })
+                .passthrough()
+                .optional(),
+              annualExpenditureEffect: z
+                .object({ amount: z.number(), currency: z.string() })
+                .passthrough()
+                .optional(),
+              paybackYears: z.number().optional(),
+              heatVolumeEffectMwh: z.number().optional(),
+              returnTemperatureEffectK: z.number().optional(),
+              plainLanguageConclusion: z.string().optional(),
+              benchmarkCohortId: z.string().optional(),
+            })
+            .passthrough()
+        ),
+        nextCursor: z.string().optional(),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough(),
+  })
+  .passthrough();
+const RemediationProposalCreate = z
+  .object({
+    connectionId: z.string(),
+    measures: z.array(
+      z.enum([
+        'substation_replacement',
+        'control_valve_replacement',
+        'hydronic_rebalancing',
+        'radiator_thermostat_upgrade',
+        'domestic_hot_water_circuit_repair',
+        'envelope_insulation',
+        'window_replacement',
+        'ventilation_heat_recovery',
+      ])
+    ),
+    benchmarkCohortId: z.string().optional(),
+  })
+  .passthrough();
+const DataEnvelopeRemediationProposal = z
+  .object({
+    data: z
+      .object({
+        id: z.string(),
+        connectionId: z.string(),
+        status: z.enum([
+          'drafted',
+          'issued',
+          'accepted',
+          'declined',
+          'completed',
+        ]),
+        measures: z.array(z.string()),
+        estimatedCapitalCost: z
+          .object({ amount: z.number(), currency: z.string() })
+          .passthrough()
+          .optional(),
+        annualExpenditureEffect: z
+          .object({ amount: z.number(), currency: z.string() })
+          .passthrough()
+          .optional(),
+        paybackYears: z.number().optional(),
+        heatVolumeEffectMwh: z.number().optional(),
+        returnTemperatureEffectK: z.number().optional(),
+        plainLanguageConclusion: z.string().optional(),
+        benchmarkCohortId: z.string().optional(),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough(),
+  })
+  .passthrough();
+const BenchmarkCohort = z
+  .object({
+    id: z.string(),
+    definition: z.string(),
+    cohortSize: z.number().int(),
+    anonymityThresholdMet: z.boolean(),
+    subjectConnectionId: z.string().optional(),
+    subjectPercentile: z.number().optional(),
+    medianSpecificHeatUseKwhPerM2: z.number().optional(),
+    medianReturnTemperatureC: z.number().optional(),
+    subjectSpecificHeatUseKwhPerM2: z.number().optional(),
+  })
+  .passthrough();
+const DataEnvelopeBenchmarkCohort = z
+  .object({
+    data: z
+      .object({
+        id: z.string(),
+        definition: z.string(),
+        cohortSize: z.number().int(),
+        anonymityThresholdMet: z.boolean(),
+        subjectConnectionId: z.string().optional(),
+        subjectPercentile: z.number().optional(),
+        medianSpecificHeatUseKwhPerM2: z.number().optional(),
+        medianReturnTemperatureC: z.number().optional(),
+        subjectSpecificHeatUseKwhPerM2: z.number().optional(),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough(),
+  })
+  .passthrough();
+const ConditionReport = z
+  .object({
+    connectionId: z.string(),
+    period: z.string(),
+    conclusions: z.array(z.string()),
+    recommendedActions: z
+      .array(
+        z
+          .object({
+            action: z.string(),
+            ownedBy: z.enum([
+              'heating_company',
+              'building_manager',
+              'property_owner',
+            ]),
+            expectedEffect: z.string(),
+          })
+          .partial()
+          .passthrough()
+      )
+      .optional(),
+    guaranteeStatus: z
+      .enum(['met', 'breached_and_credited', 'under_investigation'])
+      .optional(),
+    rawDataIncluded: z.boolean().optional(),
+    annualExpenditureToDate: z
+      .object({ amount: z.number(), currency: z.string() })
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+const DataEnvelopeConditionReport = z
+  .object({
+    data: z
+      .object({
+        connectionId: z.string(),
+        period: z.string(),
+        conclusions: z.array(z.string()),
+        recommendedActions: z
+          .array(
+            z
+              .object({
+                action: z.string(),
+                ownedBy: z.enum([
+                  'heating_company',
+                  'building_manager',
+                  'property_owner',
+                ]),
+                expectedEffect: z.string(),
+              })
+              .partial()
+              .passthrough()
+          )
+          .optional(),
+        guaranteeStatus: z
+          .enum(['met', 'breached_and_credited', 'under_investigation'])
+          .optional(),
+        rawDataIncluded: z.boolean().optional(),
+        annualExpenditureToDate: z
+          .object({ amount: z.number(), currency: z.string() })
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough(),
+  })
+  .passthrough();
+
+export const schemas: any = {
+  issueRemediationProposal_Body,
+  Problem,
+  Money,
+  RemediationProposal,
+  ResponseMeta,
+  ListEnvelopeRemediationProposal,
+  RemediationProposalCreate,
+  DataEnvelopeRemediationProposal,
+  BenchmarkCohort,
+  DataEnvelopeBenchmarkCohort,
+  ConditionReport,
+  DataEnvelopeConditionReport,
+};
+
+const endpoints = makeApi([
+  {
+    method: 'get',
+    path: '/v1/advisory/benchmarks',
+    alias: 'getBenchmarkCohort',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'connectionId',
+        type: 'Query',
+        schema: z.string(),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            id: z.string(),
+            definition: z.string(),
+            cohortSize: z.number().int(),
+            anonymityThresholdMet: z.boolean(),
+            subjectConnectionId: z.string().optional(),
+            subjectPercentile: z.number().optional(),
+            medianSpecificHeatUseKwhPerM2: z.number().optional(),
+            medianReturnTemperatureC: z.number().optional(),
+            subjectSpecificHeatUseKwhPerM2: z.number().optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 409,
+        description: `Cohort below the minimum size required for anonymity`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'get',
+    path: '/v1/advisory/condition-reports',
+    alias: 'getPlainLanguageConditionReport',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'connectionId',
+        type: 'Query',
+        schema: z.string(),
+      },
+      {
+        name: 'period',
+        type: 'Query',
+        schema: z.string().optional(),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            connectionId: z.string(),
+            period: z.string(),
+            conclusions: z.array(z.string()),
+            recommendedActions: z
+              .array(
+                z
+                  .object({
+                    action: z.string(),
+                    ownedBy: z.enum([
+                      'heating_company',
+                      'building_manager',
+                      'property_owner',
+                    ]),
+                    expectedEffect: z.string(),
+                  })
+                  .partial()
+                  .passthrough()
+              )
+              .optional(),
+            guaranteeStatus: z
+              .enum(['met', 'breached_and_credited', 'under_investigation'])
+              .optional(),
+            rawDataIncluded: z.boolean().optional(),
+            annualExpenditureToDate: z
+              .object({ amount: z.number(), currency: z.string() })
+              .passthrough()
+              .optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'get',
+    path: '/v1/advisory/remediation-proposals',
+    alias: 'listRemediationProposals',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'cursor',
+        type: 'Query',
+        schema: z.string().optional(),
+      },
+      {
+        name: 'limit',
+        type: 'Query',
+        schema: z.number().int().gte(1).lte(200).optional().default(50),
+      },
+      {
+        name: 'status',
+        type: 'Query',
+        schema: z
+          .enum(['drafted', 'issued', 'accepted', 'declined', 'completed'])
+          .optional(),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            items: z.array(
+              z
+                .object({
+                  id: z.string(),
+                  connectionId: z.string(),
+                  status: z.enum([
+                    'drafted',
+                    'issued',
+                    'accepted',
+                    'declined',
+                    'completed',
+                  ]),
+                  measures: z.array(z.string()),
+                  estimatedCapitalCost: z
+                    .object({ amount: z.number(), currency: z.string() })
+                    .passthrough()
+                    .optional(),
+                  annualExpenditureEffect: z
+                    .object({ amount: z.number(), currency: z.string() })
+                    .passthrough()
+                    .optional(),
+                  paybackYears: z.number().optional(),
+                  heatVolumeEffectMwh: z.number().optional(),
+                  returnTemperatureEffectK: z.number().optional(),
+                  plainLanguageConclusion: z.string().optional(),
+                  benchmarkCohortId: z.string().optional(),
+                })
+                .passthrough()
+            ),
+            nextCursor: z.string().optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'post',
+    path: '/v1/advisory/remediation-proposals',
+    alias: 'issueRemediationProposal',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'body',
+        type: 'Body',
+        schema: issueRemediationProposal_Body,
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            id: z.string(),
+            connectionId: z.string(),
+            status: z.enum([
+              'drafted',
+              'issued',
+              'accepted',
+              'declined',
+              'completed',
+            ]),
+            measures: z.array(z.string()),
+            estimatedCapitalCost: z
+              .object({ amount: z.number(), currency: z.string() })
+              .passthrough()
+              .optional(),
+            annualExpenditureEffect: z
+              .object({ amount: z.number(), currency: z.string() })
+              .passthrough()
+              .optional(),
+            paybackYears: z.number().optional(),
+            heatVolumeEffectMwh: z.number().optional(),
+            returnTemperatureEffectK: z.number().optional(),
+            plainLanguageConclusion: z.string().optional(),
+            benchmarkCohortId: z.string().optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+]);
+
+export const api: any = new Zodios(
+  'https://api.ddd-codegen-starter.local/v1',
+  endpoints
+);
+
+export function createApiClient(baseUrl: string, options?: ZodiosOptions): any {
+  return new Zodios(baseUrl, endpoints, options);
+}

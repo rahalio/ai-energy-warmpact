@@ -1,0 +1,189 @@
+openapi: 3.1.0
+info:
+  title: Advisory API
+  version: 0.1.0
+  description: 'Remediation proposals, benchmarking, and plain-language reporting
+
+    '
+  license:
+    name: Proprietary
+    url: https://warmpact.local/license
+  x-domain: adv
+  x-product: warmpact
+servers:
+- url: https://api.warmpact.local
+  description: Local / product API
+security:
+- bearerAuth: []
+- apiKey: []
+tags:
+- name: Advisory
+  description: Remediation proposals, benchmarking, and plain-language reporting
+paths:
+  /v1/advisory/remediation-proposals:
+    get:
+      operationId: listRemediationProposals
+      tags:
+      - Advisory
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum:
+          - drafted
+          - issued
+          - accepted
+          - declined
+          - completed
+      responses:
+        '200':
+          description: Remediation and retrofit proposals page
+          content:
+            application/json:
+              schema:
+                $ref: ./advisory.schemas.yaml#/components/schemas/ListEnvelopeRemediationProposal
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: RemediationProposal
+      x-dynamodb:
+        entityType: REMEDIATION
+        pkPatternTemplate: TENANT#${tenantId}#REMEDIATION#${proposalId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: List Remediation Proposals
+    post:
+      operationId: issueRemediationProposal
+      tags:
+      - Advisory
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./advisory.schemas.yaml#/components/schemas/RemediationProposalCreate
+      responses:
+        '201':
+          description: Proposal issued stating effect on long-run annual expenditure
+          content:
+            application/json:
+              schema:
+                $ref: ./advisory.schemas.yaml#/components/schemas/DataEnvelopeRemediationProposal
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: RemediationProposal
+      x-dynamodb:
+        entityType: REMEDIATION
+        pkPatternTemplate: TENANT#${tenantId}#REMEDIATION#${proposalId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: Issue Remediation Proposal
+  /v1/advisory/benchmarks:
+    get:
+      operationId: getBenchmarkCohort
+      tags:
+      - Advisory
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: connectionId
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Anonymised comparable-property cohort statistics
+          content:
+            application/json:
+              schema:
+                $ref: ./advisory.schemas.yaml#/components/schemas/DataEnvelopeBenchmarkCohort
+        '409':
+          description: Cohort below the minimum size required for anonymity
+          content:
+            application/json:
+              schema:
+                $ref: ./common/problem.yaml#/components/schemas/Problem
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: BenchmarkCohort
+      x-dynamodb:
+        entityType: BENCHMARK
+        pkPatternTemplate: TENANT#${tenantId}#BENCHMARK#${cohortId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: Get Benchmark Cohort
+  /v1/advisory/condition-reports:
+    get:
+      operationId: getPlainLanguageConditionReport
+      tags:
+      - Advisory
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: connectionId
+        in: query
+        required: true
+        schema:
+          type: string
+      - $ref: '#/components/parameters/Period'
+      responses:
+        '200':
+          description: Conclusions and recommended actions, not raw consumption data
+          content:
+            application/json:
+              schema:
+                $ref: ./advisory.schemas.yaml#/components/schemas/DataEnvelopeConditionReport
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: ConditionReport
+      x-dynamodb:
+        entityType: CONDITION_REPORT
+        pkPatternTemplate: TENANT#${tenantId}#CONDITION_REPORT#${reportId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: Get Plain Language Condition Report
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Tenant API key. Implies tenant isolation.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Operator session JWT from identity auth.
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    Period:
+      name: period
+      in: query
+      schema:
+        type: string
+        example: 2026-02

@@ -1,0 +1,209 @@
+openapi: 3.1.0
+info:
+  title: Network Optimisation API
+  version: 0.1.0
+  description: 'Supply temperature setpoints and return temperature management
+
+    '
+  license:
+    name: Proprietary
+    url: https://warmpact.local/license
+  x-domain: net
+  x-product: warmpact
+servers:
+- url: https://api.warmpact.local
+  description: Local / product API
+security:
+- bearerAuth: []
+- apiKey: []
+tags:
+- name: NetworkOptimisation
+  description: Supply temperature setpoints and return temperature management
+paths:
+  /v1/network/setpoints:
+    get:
+      operationId: listSupplyTemperatureSetpoints
+      tags:
+      - NetworkOptimisation
+      security:
+      - apiKey: []
+      - bearerAuth: []
+      parameters:
+      - name: networkZone
+        in: query
+        schema:
+          type: string
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Current and scheduled supply temperature setpoints
+          content:
+            application/json:
+              schema:
+                $ref: ./network.schemas.yaml#/components/schemas/ListEnvelopeSupplyTemperatureSetpoint
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: SupplyTemperatureSetpoint
+      x-dynamodb:
+        entityType: SUPPLY_SETPOINT
+        pkPatternTemplate: TENANT#${tenantId}#SUPPLY_SETPOINT#${setpointId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: List Supply Temperature Setpoints
+    post:
+      operationId: issueSupplyTemperatureSetpoint
+      tags:
+      - NetworkOptimisation
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./network.schemas.yaml#/components/schemas/SupplyTemperatureSetpointCreate
+      responses:
+        '201':
+          description: Setpoint issued to network control within safety floors
+          content:
+            application/json:
+              schema:
+                $ref: ./network.schemas.yaml#/components/schemas/DataEnvelopeSupplyTemperatureSetpoint
+        '403':
+          description: Setpoint would breach a health and safety floor and is refused
+          content:
+            application/json:
+              schema:
+                $ref: ./common/problem.yaml#/components/schemas/Problem
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: SupplyTemperatureSetpoint
+      x-dynamodb:
+        entityType: SUPPLY_SETPOINT
+        pkPatternTemplate: TENANT#${tenantId}#SUPPLY_SETPOINT#${setpointId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: Issue Supply Temperature Setpoint
+  /v1/network/return-temperatures:
+    get:
+      operationId: listReturnTemperatureRecords
+      tags:
+      - NetworkOptimisation
+      security:
+      - apiKey: []
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      - name: sortBy
+        in: query
+        schema:
+          type: string
+          enum:
+          - cost_to_network_desc
+          - temperature_desc
+          default: cost_to_network_desc
+      responses:
+        '200':
+          description: Connection-level return temperatures ranked by cost to the network
+          content:
+            application/json:
+              schema:
+                $ref: ./network.schemas.yaml#/components/schemas/ListEnvelopeReturnTemperatureRecord
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: ReturnTemperatureRecord
+      x-dynamodb:
+        entityType: RETURN_TEMP
+        pkPatternTemplate: TENANT#${tenantId}#RETURN_TEMP#${recordId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: List Return Temperature Records
+    post:
+      operationId: ingestReturnTemperatureRecord
+      tags:
+      - NetworkOptimisation
+      security:
+      - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./network.schemas.yaml#/components/schemas/ReturnTemperatureRecord
+      responses:
+        '202':
+          description: Return temperature telemetry accepted
+          content:
+            application/json:
+              schema:
+                $ref: ./network.schemas.yaml#/components/schemas/DataEnvelopeReturnTemperatureRecord
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: ReturnTemperatureRecord
+      x-dynamodb:
+        entityType: RETURN_TEMP
+        pkPatternTemplate: TENANT#${tenantId}#RETURN_TEMP#${recordId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: Ingest Return Temperature Record
+  /v1/network/binding-connections:
+    get:
+      operationId: listBindingConnectionConstraints
+      tags:
+      - NetworkOptimisation
+      summary: List connections that bind the next supply temperature drop
+      security:
+      - bearerAuth: []
+      - apiKey: []
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      - name: networkZone
+        in: query
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Binding connection constraints
+          content:
+            application/json:
+              schema:
+                $ref: ./network.schemas.yaml#/components/schemas/ListEnvelopeBindingConnectionConstraint
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Tenant API key. Implies tenant isolation.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Operator session JWT from identity auth.
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50

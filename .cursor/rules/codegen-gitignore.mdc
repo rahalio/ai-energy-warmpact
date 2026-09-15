@@ -1,0 +1,21 @@
+---
+description: Never commit or push the .codegen directory
+alwaysApply: true
+---
+
+# `.codegen` must not be committed
+
+The `zero-codegen` tool and merged config under `.codegen/` are **local-only**.
+
+- Do **not** `git add`, commit, or push `.codegen/` (or nested `zero_codegen` sources).
+- `.gitignore` already lists `.codegen/` — do not remove that entry.
+- If `.codegen` is missing after clone, copy it from `zero-apps-codegen-scaffold`:
+
+```bash
+rsync -a --exclude '__pycache__' \
+  /path/to/zero-apps-codegen-scaffold/.codegen/ \
+  ./.codegen/
+pnpm codegen:paths
+```
+
+Package scope for this product is `@warmpact`.

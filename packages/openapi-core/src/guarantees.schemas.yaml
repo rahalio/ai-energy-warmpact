@@ -1,0 +1,327 @@
+openapi: 3.1.0
+info:
+  title: Guarantees API schemas
+  version: 0.1.0
+paths: {}
+components:
+  schemas:
+    DataEnvelopeConditionGuarantee:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/ConditionGuarantee'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    ExitPackage:
+      type: object
+      required:
+      - id
+      - guaranteeId
+      - reason
+      - releasedAt
+      properties:
+        id:
+          type: string
+        guaranteeId:
+          type: string
+        connectionId:
+          type: string
+        reason:
+          type: string
+          enum:
+          - customer_exit
+          - transfer_to_third_party
+          - method_change
+          - end_of_term
+        transferee:
+          type: string
+        includesThermalModel:
+          type: boolean
+        includesConditionHistory:
+          type: boolean
+        includesSubstationSettings:
+          type: boolean
+        releasedAt:
+          type: string
+          format: date-time
+    SafetyFloor:
+      type: object
+      required:
+      - name
+      - floorValue
+      - unit
+      - overridable
+      properties:
+        name:
+          type: string
+          enum:
+          - minimum_indoor_temperature
+          - minimum_domestic_hot_water_temperature
+          - minimum_circulation_temperature
+        floorValue:
+          type: number
+          format: float
+        unit:
+          type: string
+          example: degC
+        basis:
+          type: string
+          enum:
+          - tenancy_obligation
+          - legionella_control
+          - building_code
+        overridable:
+          type: boolean
+          example: false
+    DataEnvelopeConditionProduct:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/ConditionProduct'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    ListEnvelopeSafetyFloor:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: object
+          required:
+          - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/SafetyFloor'
+            nextCursor:
+              type: string
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    ConditionGuaranteeCreate:
+      type: object
+      required:
+      - connectionId
+      - conditionProductId
+      - flatRatePriceId
+      - termMonths
+      properties:
+        connectionId:
+          type: string
+        conditionProductId:
+          type: string
+        flatRatePriceId:
+          type: string
+        termMonths:
+          type: integer
+        serviceCreditRatePercent:
+          type: number
+          format: float
+    ConditionProductCreate:
+      type: object
+      required:
+      - name
+      - indoorTemperatureBandC
+      - responseTimeHours
+      properties:
+        name:
+          type: string
+        plainLanguageSummary:
+          type: string
+        indoorTemperatureBandC:
+          type: object
+          properties:
+            minimum:
+              type: number
+              format: float
+            maximum:
+              type: number
+              format: float
+        hotWaterAvailability:
+          type: string
+          enum:
+          - continuous
+          - scheduled
+        responseTimeHours:
+          type: integer
+        exclusions:
+          type: array
+          items:
+            type: string
+    ConditionProduct:
+      type: object
+      required:
+      - id
+      - name
+      - indoorTemperatureBandC
+      - hotWaterAvailability
+      - responseTimeHours
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        plainLanguageSummary:
+          type: string
+        indoorTemperatureBandC:
+          type: object
+          properties:
+            minimum:
+              type: number
+              format: float
+            maximum:
+              type: number
+              format: float
+        hotWaterAvailability:
+          type: string
+          enum:
+          - continuous
+          - scheduled
+        responseTimeHours:
+          type: integer
+        exclusions:
+          type: array
+          items:
+            type: string
+        includesBuildingSideMaintenance:
+          type: boolean
+    ConditionGuarantee:
+      type: object
+      required:
+      - id
+      - connectionId
+      - conditionProductId
+      - status
+      - flatMonthlyRate
+      properties:
+        id:
+          type: string
+        connectionId:
+          type: string
+        conditionProductId:
+          type: string
+        status:
+          type: string
+          enum:
+          - offered
+          - active
+          - in_revision
+          - terminated
+        flatMonthlyRate:
+          $ref: '#/components/schemas/Money'
+        termMonths:
+          type: integer
+        startsOn:
+          type: string
+          format: date
+        serviceCreditRatePercent:
+          type: number
+          format: float
+        exitTermsSummary:
+          type: string
+        revisionTriggers:
+          type: array
+          items:
+            type: string
+    ListEnvelopeConditionGuarantee:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: object
+          required:
+          - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ConditionGuarantee'
+            nextCursor:
+              type: string
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    DataEnvelopeExitPackage:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/ExitPackage'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    ListEnvelopeConditionProduct:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: object
+          required:
+          - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ConditionProduct'
+            nextCursor:
+              type: string
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    Money:
+      type: object
+      required:
+      - amount
+      - currency
+      properties:
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+          example: EUR
+    SafetyFloorOverrideAttempt:
+      type: object
+      required:
+      - id
+      - floorName
+      - attemptedValue
+      - refused
+      - loggedAt
+      properties:
+        id:
+          type: string
+        floorName:
+          type: string
+        attemptedValue:
+          type: number
+          format: float
+        requestedBy:
+          type: string
+        refused:
+          type: boolean
+          const: true
+        refusalReason:
+          type: string
+        loggedAt:
+          type: string
+          format: date-time
+    DataEnvelopeSafetyFloorOverrideAttempt:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          $ref: '#/components/schemas/SafetyFloorOverrideAttempt'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta

@@ -1,0 +1,141 @@
+openapi: 3.1.0
+info:
+  title: Pricing API
+  version: 0.1.0
+  description: 'Flat-rate price construction, revision, and comparability
+
+    '
+  license:
+    name: Proprietary
+    url: https://warmpact.local/license
+  x-domain: prc
+  x-product: warmpact
+servers:
+- url: https://api.warmpact.local
+  description: Local / product API
+security:
+- bearerAuth: []
+- apiKey: []
+tags:
+- name: Pricing
+  description: Flat-rate price construction, revision, and comparability
+paths:
+  /v1/pricing/flat-rates:
+    post:
+      operationId: buildFlatRatePrice
+      tags:
+      - Pricing
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./pricing.schemas.yaml#/components/schemas/FlatRatePriceRequest
+      responses:
+        '200':
+          description: Flat rate built from named components with revision triggers
+          content:
+            application/json:
+              schema:
+                $ref: ./pricing.schemas.yaml#/components/schemas/DataEnvelopeFlatRatePrice
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: FlatRatePrice
+      x-dynamodb:
+        entityType: FLAT_RATE_PRICE
+        pkPatternTemplate: TENANT#${tenantId}#FLAT_RATE_PRICE#${priceId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: Build Flat Rate Price
+  /v1/pricing/comparability-checks:
+    post:
+      operationId: checkPriceComparability
+      tags:
+      - Pricing
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - guaranteeId
+              properties:
+                guaranteeId:
+                  type: string
+      responses:
+        '200':
+          description: Evidence that comparable customers are priced on comparable terms
+          content:
+            application/json:
+              schema:
+                $ref: ./pricing.schemas.yaml#/components/schemas/DataEnvelopeTariffComparabilityCheck
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: none
+      summary: Check Price Comparability
+  /v1/pricing/revision-triggers:
+    get:
+      operationId: listRevisionTriggers
+      tags:
+      - Pricing
+      summary: List price/guarantee revision triggers due
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum:
+          - due
+          - in_progress
+          - completed
+          - waived
+      responses:
+        '200':
+          description: Revision triggers
+          content:
+            application/json:
+              schema:
+                $ref: ./pricing.schemas.yaml#/components/schemas/ListEnvelopeRevisionTrigger
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Tenant API key. Implies tenant isolation.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Operator session JWT from identity auth.
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50

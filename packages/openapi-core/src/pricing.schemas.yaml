@@ -1,0 +1,185 @@
+openapi: 3.1.0
+info:
+  title: Pricing API schemas
+  version: 0.1.0
+paths: {}
+components:
+  schemas:
+    PriceComponent:
+      type: object
+      required:
+      - component
+      - amount
+      properties:
+        component:
+          type: string
+          enum:
+          - modelled_heat_cost
+          - fuel_and_carbon
+          - distribution_and_heat_loss
+          - substation_service
+          - guarantee_risk_margin
+          - advisory_service
+          - platform_and_administration
+        amount:
+          $ref: '#/components/schemas/Money'
+        plainLanguage:
+          type: string
+    TariffComparabilityCheck:
+      type: object
+      required:
+      - guaranteeId
+      - verdict
+      properties:
+        guaranteeId:
+          type: string
+        verdict:
+          type: string
+          enum:
+          - comparable
+          - deviation_justified
+          - deviation_unjustified
+        cohortDefinition:
+          type: string
+        cohortSize:
+          type: integer
+        medianCohortRate:
+          $ref: '#/components/schemas/Money'
+        deviationPercent:
+          type: number
+          format: float
+        publishedTariffReference:
+          type: string
+        justification:
+          type: string
+        reviewedBy:
+          type: string
+    DataEnvelopeFlatRatePrice:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/FlatRatePrice'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    FlatRatePriceRequest:
+      type: object
+      required:
+      - connectionId
+      - conditionProductId
+      properties:
+        connectionId:
+          type: string
+        conditionProductId:
+          type: string
+        degreeDayNormalYear:
+          type: integer
+        carbonPricePerTonne:
+          $ref: '#/components/schemas/Money'
+    FlatRatePrice:
+      type: object
+      required:
+      - id
+      - connectionId
+      - flatMonthlyRate
+      - components
+      properties:
+        id:
+          type: string
+        connectionId:
+          type: string
+        flatMonthlyRate:
+          $ref: '#/components/schemas/Money'
+        components:
+          type: array
+          items:
+            $ref: '#/components/schemas/PriceComponent'
+        degreeDayNormalYear:
+          type: integer
+        revisionTriggers:
+          type: array
+          items:
+            type: string
+            enum:
+            - fuel_price_band
+            - carbon_price_band
+            - degree_day_deviation
+            - building_renovation
+            - term_anniversary
+        customerAnnualExpenditureEstimate:
+          $ref: '#/components/schemas/Money'
+        comparedToMeteredTariff:
+          $ref: '#/components/schemas/Money'
+    DataEnvelopeTariffComparabilityCheck:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/TariffComparabilityCheck'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    Money:
+      type: object
+      required:
+      - amount
+      - currency
+      properties:
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+          example: EUR
+    RevisionTrigger:
+      type: object
+      required:
+      - id
+      - guaranteeId
+      - trigger
+      - status
+      - dueOn
+      properties:
+        id:
+          type: string
+        guaranteeId:
+          type: string
+        connectionId:
+          type: string
+        trigger:
+          type: string
+          enum:
+          - fuel_price_band
+          - carbon_price_band
+          - degree_day_deviation
+          - building_renovation
+          - term_anniversary
+        status:
+          type: string
+          enum:
+          - due
+          - in_progress
+          - completed
+          - waived
+        dueOn:
+          type: string
+          format: date
+    ListEnvelopeRevisionTrigger:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/RevisionTrigger'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta

@@ -1,0 +1,18 @@
+{
+  "name": "@warmpact/openapi-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OpenAPI contracts for Warmpact (common + identity + product domains)",
+  "scripts": {
+    "lint:domains": "redocly lint",
+    "bundle:domains": "mkdir -p src/.bundled && redocly bundle identity --output src/.bundled/identity.openapi.yaml && redocly bundle identity --output src/.bundled/identity.json && redocly bundle customers --output src/.bundled/customers.openapi.yaml && redocly bundle customers --output src/.bundled/customers.json && redocly bundle underwriting --output src/.bundled/underwriting.openapi.yaml && redocly bundle underwriting --output src/.bundled/underwriting.json && redocly bundle guarantees --output src/.bundled/guarantees.openapi.yaml && redocly bundle guarantees --output src/.bundled/guarantees.json && redocly bundle pricing --output src/.bundled/pricing.openapi.yaml && redocly bundle pricing --output src/.bundled/pricing.json && redocly bundle forecasting --output src/.bundled/forecasting.openapi.yaml && redocly bundle forecasting --output src/.bundled/forecasting.json && redocly bundle network --output src/.bundled/network.openapi.yaml && redocly bundle network --output src/.bundled/network.json && redocly bundle diagnostics --output src/.bundled/diagnostics.openapi.yaml && redocly bundle diagnostics --output src/.bundled/diagnostics.json && redocly bundle settlement --output src/.bundled/settlement.openapi.yaml && redocly bundle settlement --output src/.bundled/settlement.json && redocly bundle advisory --output src/.bundled/advisory.openapi.yaml && redocly bundle advisory --output src/.bundled/advisory.json && redocly bundle governance --output src/.bundled/governance.openapi.yaml && redocly bundle governance --output src/.bundled/governance.json",
+    "lint": "pnpm run lint:domains",
+    "bundle": "pnpm run bundle:domains"
+  },
+  "devDependencies": {
+    "@redocly/cli": "^1.34.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

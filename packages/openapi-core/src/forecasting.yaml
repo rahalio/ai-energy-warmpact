@@ -1,0 +1,74 @@
+openapi: 3.1.0
+info:
+  title: Forecasting API
+  version: 0.1.0
+  description: 'Building-level and network heat demand forecasts
+
+    '
+  license:
+    name: Proprietary
+    url: https://warmpact.local/license
+  x-domain: fst
+  x-product: warmpact
+servers:
+- url: https://api.warmpact.local
+  description: Local / product API
+security:
+- bearerAuth: []
+- apiKey: []
+tags:
+- name: Forecasting
+  description: Building-level and network heat demand forecasts
+paths:
+  /v1/forecasts/demand:
+    get:
+      operationId: getDemandForecast
+      tags:
+      - Forecasting
+      security:
+      - apiKey: []
+      - bearerAuth: []
+      parameters:
+      - name: connectionId
+        in: query
+        schema:
+          type: string
+      - name: networkZone
+        in: query
+        schema:
+          type: string
+      - name: horizonHours
+        in: query
+        schema:
+          type: integer
+          default: 72
+      responses:
+        '200':
+          description: Building-level or zone-level heat demand forecast
+          content:
+            application/json:
+              schema:
+                $ref: ./forecasting.schemas.yaml#/components/schemas/DataEnvelopeDemandForecast
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: DemandForecast
+      x-dynamodb:
+        entityType: DEMAND_FORECAST
+        pkPatternTemplate: TENANT#${tenantId}#DEMAND_FORECAST#${forecastId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: Get Demand Forecast
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Tenant API key. Implies tenant isolation.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Operator session JWT from identity auth.

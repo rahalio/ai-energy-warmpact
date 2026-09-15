@@ -1,0 +1,121 @@
+openapi: 3.1.0
+info:
+  title: Governance API
+  version: 0.1.0
+  description: 'Carbon intensity, tariff comparability audit, and governance events
+
+    '
+  license:
+    name: Proprietary
+    url: https://warmpact.local/license
+  x-domain: gov
+  x-product: warmpact
+servers:
+- url: https://api.warmpact.local
+  description: Local / product API
+security:
+- bearerAuth: []
+- apiKey: []
+tags:
+- name: Governance
+  description: Carbon intensity, tariff comparability audit, and governance events
+paths:
+  /v1/governance/carbon-intensity:
+    get:
+      operationId: listCarbonIntensityRecords
+      tags:
+      - Governance
+      security:
+      - apiKey: []
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/Period'
+      responses:
+        '200':
+          description: Fuel mix and carbon intensity behind delivered heat
+          content:
+            application/json:
+              schema:
+                $ref: ./governance.schemas.yaml#/components/schemas/ListEnvelopeCarbonIntensityRecord
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: CarbonIntensityRecord
+      x-dynamodb:
+        entityType: CARBON_INTENSITY
+        pkPatternTemplate: TENANT#${tenantId}#CARBON_INTENSITY#${period}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: List Carbon Intensity Records
+  /v1/governance/events:
+    get:
+      operationId: listGovernanceEvents
+      tags:
+      - Governance
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      - name: eventType
+        in: query
+        schema:
+          type: string
+          enum:
+          - guarantee_revision
+          - price_revision
+          - safety_floor_override_refused
+          - underwriting_decline
+          - exit_package_released
+          - comparability_review
+      responses:
+        '200':
+          description: Audit trail of guarantee, price, and safety-floor events
+          content:
+            application/json:
+              schema:
+                $ref: ./governance.schemas.yaml#/components/schemas/ListEnvelopeGovernanceEvent
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: GovernanceEvent
+      x-dynamodb:
+        entityType: GOVERNANCE_EVENT
+        pkPatternTemplate: TENANT#${tenantId}#GOVERNANCE_EVENT#${eventId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: List Governance Events
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Tenant API key. Implies tenant isolation.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Operator session JWT from identity auth.
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    Period:
+      name: period
+      in: query
+      schema:
+        type: string
+        example: 2026-02

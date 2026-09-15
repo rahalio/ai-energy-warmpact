@@ -1,0 +1,129 @@
+openapi: 3.1.0
+info:
+  title: Diagnostics API
+  version: 0.1.0
+  description: 'Substation fault findings and work order dispatch
+
+    '
+  license:
+    name: Proprietary
+    url: https://warmpact.local/license
+  x-domain: dia
+  x-product: warmpact
+servers:
+- url: https://api.warmpact.local
+  description: Local / product API
+security:
+- bearerAuth: []
+- apiKey: []
+tags:
+- name: Diagnostics
+  description: Substation fault findings and work order dispatch
+paths:
+  /v1/diagnostics/fault-findings:
+    get:
+      operationId: listFaultFindings
+      tags:
+      - Diagnostics
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      - name: faultType
+        in: query
+        schema:
+          $ref: ./diagnostics.schemas.yaml#/components/schemas/FaultType
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum:
+          - detected
+          - triaged
+          - dispatched
+          - resolved
+          - dismissed
+      responses:
+        '200':
+          description: Substation and building-side fault findings with evidence
+          content:
+            application/json:
+              schema:
+                $ref: ./diagnostics.schemas.yaml#/components/schemas/ListEnvelopeFaultFinding
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: FaultFinding
+      x-dynamodb:
+        entityType: FAULT_FINDING
+        pkPatternTemplate: TENANT#${tenantId}#FAULT_FINDING#${findingId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: List Fault Findings
+  /v1/diagnostics/fault-findings/{findingId}/work-order:
+    parameters:
+    - $ref: '#/components/parameters/FindingId'
+    post:
+      operationId: dispatchWorkOrder
+      tags:
+      - Diagnostics
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./diagnostics.schemas.yaml#/components/schemas/WorkOrderCreate
+      responses:
+        '201':
+          description: Work order dispatched with suspected cause and evidence attached
+          content:
+            application/json:
+              schema:
+                $ref: ./diagnostics.schemas.yaml#/components/schemas/DataEnvelopeWorkOrder
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: WorkOrder
+      x-dynamodb:
+        entityType: WORK_ORDER
+        pkPatternTemplate: TENANT#${tenantId}#WORK_ORDER#${workOrderId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: Dispatch Work Order
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Tenant API key. Implies tenant isolation.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Operator session JWT from identity auth.
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    FindingId:
+      name: findingId
+      in: path
+      required: true
+      schema:
+        type: string

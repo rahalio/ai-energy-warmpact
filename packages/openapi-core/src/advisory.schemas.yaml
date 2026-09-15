@@ -1,0 +1,205 @@
+openapi: 3.1.0
+info:
+  title: Advisory API schemas
+  version: 0.1.0
+paths: {}
+components:
+  schemas:
+    RemediationProposal:
+      type: object
+      required:
+      - id
+      - connectionId
+      - status
+      - measures
+      properties:
+        id:
+          type: string
+        connectionId:
+          type: string
+        status:
+          type: string
+          enum:
+          - drafted
+          - issued
+          - accepted
+          - declined
+          - completed
+        measures:
+          type: array
+          items:
+            type: string
+        estimatedCapitalCost:
+          $ref: '#/components/schemas/Money'
+        annualExpenditureEffect:
+          $ref: '#/components/schemas/Money'
+          description: Effect on the customer's long-run annual user expenditure
+        paybackYears:
+          type: number
+          format: float
+        heatVolumeEffectMwh:
+          type: number
+          format: float
+          description: Negative where the proposal reduces the company's own heat sales
+        returnTemperatureEffectK:
+          type: number
+          format: float
+        plainLanguageConclusion:
+          type: string
+        benchmarkCohortId:
+          type: string
+    Money:
+      type: object
+      required:
+      - amount
+      - currency
+      properties:
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+          example: EUR
+    DataEnvelopeRemediationProposal:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/RemediationProposal'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    ConditionReport:
+      type: object
+      required:
+      - connectionId
+      - period
+      - conclusions
+      properties:
+        connectionId:
+          type: string
+        period:
+          type: string
+        conclusions:
+          type: array
+          items:
+            type: string
+        recommendedActions:
+          type: array
+          items:
+            type: object
+            properties:
+              action:
+                type: string
+              ownedBy:
+                type: string
+                enum:
+                - heating_company
+                - building_manager
+                - property_owner
+              expectedEffect:
+                type: string
+        guaranteeStatus:
+          type: string
+          enum:
+          - met
+          - breached_and_credited
+          - under_investigation
+        rawDataIncluded:
+          type: boolean
+          example: false
+        annualExpenditureToDate:
+          $ref: '#/components/schemas/Money'
+    RemediationProposalCreate:
+      type: object
+      required:
+      - connectionId
+      - measures
+      properties:
+        connectionId:
+          type: string
+        measures:
+          type: array
+          items:
+            type: string
+            enum:
+            - substation_replacement
+            - control_valve_replacement
+            - hydronic_rebalancing
+            - radiator_thermostat_upgrade
+            - domestic_hot_water_circuit_repair
+            - envelope_insulation
+            - window_replacement
+            - ventilation_heat_recovery
+        benchmarkCohortId:
+          type: string
+    DataEnvelopeBenchmarkCohort:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/BenchmarkCohort'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    BenchmarkCohort:
+      type: object
+      required:
+      - id
+      - definition
+      - cohortSize
+      - anonymityThresholdMet
+      properties:
+        id:
+          type: string
+        definition:
+          type: string
+        cohortSize:
+          type: integer
+        anonymityThresholdMet:
+          type: boolean
+        subjectConnectionId:
+          type: string
+        subjectPercentile:
+          type: number
+          format: float
+        medianSpecificHeatUseKwhPerM2:
+          type: number
+          format: float
+        medianReturnTemperatureC:
+          type: number
+          format: float
+        subjectSpecificHeatUseKwhPerM2:
+          type: number
+          format: float
+    ListEnvelopeRemediationProposal:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: object
+          required:
+          - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/RemediationProposal'
+            nextCursor:
+              type: string
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+    DataEnvelopeConditionReport:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/ConditionReport'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta

@@ -1,0 +1,129 @@
+openapi: 3.1.0
+info:
+  title: Underwriting API
+  version: 0.1.0
+  description: 'Building thermal models and offer/decline/remediate decisions
+
+    '
+  license:
+    name: Proprietary
+    url: https://warmpact.local/license
+  x-domain: uwr
+  x-product: warmpact
+servers:
+- url: https://api.warmpact.local
+  description: Local / product API
+security:
+- bearerAuth: []
+- apiKey: []
+tags:
+- name: Underwriting
+  description: Building thermal models and offer/decline/remediate decisions
+paths:
+  /v1/connections/{connectionId}/underwriting:
+    parameters:
+    - $ref: '#/components/parameters/ConnectionId'
+    post:
+      operationId: underwriteBuildingConnection
+      tags:
+      - Underwriting
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./underwriting.schemas.yaml#/components/schemas/UnderwritingRequest
+      responses:
+        '201':
+          description: Assessment with offer, decline, or remediate-first decision
+          content:
+            application/json:
+              schema:
+                $ref: ./underwriting.schemas.yaml#/components/schemas/DataEnvelopeUnderwritingAssessment
+        '409':
+          description: Insufficient substation history to build a thermal model
+          content:
+            application/json:
+              schema:
+                $ref: ./common/problem.yaml#/components/schemas/Problem
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: UnderwritingAssessment
+      x-dynamodb:
+        entityType: UNDERWRITING
+        pkPatternTemplate: TENANT#${tenantId}#UNDERWRITING#${assessmentId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: Underwrite Building Connection
+    get:
+      operationId: getUnderwritingAssessment
+      tags:
+      - Underwriting
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Current underwriting assessment for the connection
+          content:
+            application/json:
+              schema:
+                $ref: ./underwriting.schemas.yaml#/components/schemas/DataEnvelopeUnderwritingAssessment
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: UnderwritingAssessment
+      x-dynamodb:
+        entityType: UNDERWRITING
+        pkPatternTemplate: TENANT#${tenantId}#UNDERWRITING#${assessmentId}
+        skPatternTemplate: METADATA
+        pkPattern: template
+      summary: Get Underwriting Assessment
+  /v1/connections/{connectionId}/thermal-model:
+    parameters:
+    - $ref: '#/components/parameters/ConnectionId'
+    get:
+      operationId: getBuildingThermalModel
+      tags:
+      - Underwriting
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Building thermal model derived from telemetry and weather series
+          content:
+            application/json:
+              schema:
+                $ref: ./underwriting.schemas.yaml#/components/schemas/DataEnvelopeBuildingThermalModel
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+      x-repository: BuildingThermalModel
+      x-dynamodb:
+        entityType: THERMAL_MODEL
+        pkPatternTemplate: TENANT#${tenantId}#BUILDING_CONNECTION#${connectionId}
+        skPatternTemplate: THERMAL_MODEL#${version}
+        pkPattern: template
+      summary: Get Building Thermal Model
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Tenant API key. Implies tenant isolation.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Operator session JWT from identity auth.
+  parameters:
+    ConnectionId:
+      name: connectionId
+      in: path
+      required: true
+      schema:
+        type: string
